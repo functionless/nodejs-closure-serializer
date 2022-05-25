@@ -1,11 +1,59 @@
-const { typescript } = require('projen');
+const { typescript } = require("projen");
 const project = new typescript.TypeScriptProject({
-  defaultReleaseBranch: 'main',
-  name: 'nodejs-closure-serializer',
-
-  // deps: [],                /* Runtime dependencies of this module. */
-  // description: undefined,  /* The description is just a string that helps people understand the purpose of the package. */
-  // devDeps: [],             /* Build dependencies for this module. */
+  defaultReleaseBranch: "main",
+  name: "@functionless/nodejs-closure-serializer",
+  deps: [
+    "normalize-package-data",
+    "read-package-tree",
+    "semver",
+    "ts-node",
+    "typescript",
+    "upath",
+  ] /* Runtime dependencies of this module. */,
+  description:
+    "A fork of the nodejs closure serializer in @pulumi/pulumi" /* The description is just a string that helps people understand the purpose of the package. */,
+  devDeps: [
+    "@types/node",
+    "@types/normalize-package-data",
+    "@types/read-package-tree",
+    "@types/semver",
+    "@typescript-eslint/eslint-plugin",
+    "@typescript-eslint/parser",
+    "eslint",
+    "eslint-plugin-header",
+    "eslint-plugin-import",
+    "mockpackage@file:test/mockpackage",
+  ] /* Build dependencies for this module. */,
   // packageName: undefined,  /* The "name" in package.json. */
+  tsconfig: {
+    compilerOptions: {
+      skipLibCheck: true,
+      target: "ES2016",
+      module: "commonjs",
+      moduleResolution: "node",
+      esModuleInterop: false
+    },
+  },
+  tsconfigDev: {
+    exclude: ["test/tsClosureCases.spec.ts"],
+  },
+  jestOptions: {
+    jestConfig: {
+      injectGlobals: false,
+      collectCoverage: false,
+      coveragePathIgnorePatterns: ["/test/", "/node_modules/"],
+      globals: {
+        "ts-jest": {
+          isolatedModules: true,
+        },
+      },
+    },
+  },
+  releaseToNpm: true,
 });
+
+const packageJson = project.tryFindObjectFile("package.json");
+
+packageJson.addOverride("jest.globals.ts-jest.isolatedModules", true);
+
 project.synth();
