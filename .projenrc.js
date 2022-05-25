@@ -1,4 +1,5 @@
 const { typescript } = require('projen');
+const { NpmAccess } = require('projen/lib/javascript');
 const project = new typescript.TypeScriptProject({
   defaultReleaseBranch: 'main',
   name: '@functionless/nodejs-closure-serializer',
@@ -48,6 +49,7 @@ const project = new typescript.TypeScriptProject({
     },
   },
   releaseToNpm: true,
+  npmAccess: NpmAccess.PUBLIC
 });
 
 const packageJson = project.tryFindObjectFile('package.json');
