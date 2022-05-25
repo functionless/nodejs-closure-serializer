@@ -49,7 +49,7 @@ const project = new typescript.TypeScriptProject({
     },
   },
   releaseToNpm: true,
-  npmAccess: NpmAccess.PUBLIC
+  npmAccess: NpmAccess.PUBLIC,
 });
 
 const packageJson = project.tryFindObjectFile('package.json');
