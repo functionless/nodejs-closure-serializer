@@ -16,8 +16,8 @@
 // module works properly.  We replicate the 'Config' type here as that's the principle case
 // of a value we want people to be able to capture from a project like pulumi.
 
-export * from "./config";
-export * from "./runtimeConfig";
+export * from './config';
+export * from './runtimeConfig';
 
 // simulate this being a deployment-time only module.
 export const deploymentOnlyModule = true;

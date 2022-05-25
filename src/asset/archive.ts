@@ -12,27 +12,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import * as utils from "../utils";
-import { Asset } from "./asset";
+import * as utils from '../utils';
+import { Asset } from './asset';
 
 /**
  * An Archive represents a collection of named assets.
  */
 export abstract class Archive {
-    /**
-     * A private field to help with RTTI that works in SxS scenarios.
-     * @internal
-     */
-    // eslint-disable-next-line @typescript-eslint/naming-convention,no-underscore-dangle,id-blacklist,id-match
-    public readonly __pulumiArchive: boolean = true;
-
-    /**
+  /**
      * Returns true if the given object is an instance of an Archive.  This is designed to work even when
      * multiple copies of the Pulumi SDK have been loaded into the same process.
      */
-    public static isInstance(obj: any): obj is Archive {
-        return utils.isInstance<Archive>(obj, "__pulumiArchive");
-    }
+  public static isInstance(obj: any): obj is Archive {
+    return utils.isInstance<Archive>(obj, '__pulumiArchive');
+  }
+
+  /**
+     * A private field to help with RTTI that works in SxS scenarios.
+     * @internal
+     */
+  // eslint-disable-next-line @typescript-eslint/naming-convention,no-underscore-dangle,id-blacklist,id-match
+  public readonly __pulumiArchive: boolean = true;
 }
 
 /**
@@ -44,15 +44,15 @@ export type AssetMap = {[name: string]: Asset | Archive};
  * An AssetArchive is an archive created from an in-memory collection of named assets or other archives.
  */
 export class AssetArchive extends Archive {
-    /**
+  /**
      * A map of names to assets.
      */
-    public readonly assets: Promise<AssetMap>;
+  public readonly assets: Promise<AssetMap>;
 
-    constructor(assets: AssetMap | Promise<AssetMap>) {
-        super();
-        this.assets = Promise.resolve(assets);
-    }
+  constructor(assets: AssetMap | Promise<AssetMap>) {
+    super();
+    this.assets = Promise.resolve(assets);
+  }
 }
 
 /**
@@ -60,15 +60,15 @@ export class AssetArchive extends Archive {
  * single archive file in one of the supported formats (.tar, .tar.gz, or .zip).
  */
 export class FileArchive extends Archive {
-    /**
+  /**
      * The path to the asset file.
      */
-    public readonly path: Promise<string>;
+  public readonly path: Promise<string>;
 
-    constructor(path: string | Promise<string>) {
-        super();
-        this.path = Promise.resolve(path);
-    }
+  constructor(path: string | Promise<string>) {
+    super();
+    this.path = Promise.resolve(path);
+  }
 }
 
 /**
@@ -77,14 +77,14 @@ export class FileArchive extends Archive {
  * `https://` specify HTTP and HTTPS, respectively, and specific providers may recognize custom schemes.
  */
 export class RemoteArchive extends Archive {
-    /**
+  /**
      * The URI where the archive lives.
      */
-    public readonly uri: Promise<string>;
+  public readonly uri: Promise<string>;
 
-    constructor(uri: string | Promise<string>) {
-        super();
-        this.uri = Promise.resolve(uri);
-    }
+  constructor(uri: string | Promise<string>) {
+    super();
+    this.uri = Promise.resolve(uri);
+  }
 }
 

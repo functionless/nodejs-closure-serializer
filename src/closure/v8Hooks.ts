@@ -17,50 +17,50 @@
 // Otherwise, information may not be known when needed.  This module is only intended for use on
 // Node v11 and higher.
 
-import * as v8 from "v8";
-v8.setFlagsFromString("--allow-natives-syntax");
+import * as v8 from 'v8';
+v8.setFlagsFromString('--allow-natives-syntax');
 
-import * as semver from "semver";
+import * as semver from 'semver';
 
 // On node11 and above, create an 'inspector session' that can be used to keep track of what is
 // happening through a supported API.  Pre-11 we can just call into % intrinsics for the same data.
 /** @internal */
-export const isNodeAtLeastV11 = semver.gte(process.version, "11.0.0");
+export const isNodeAtLeastV11 = semver.gte(process.version, '11.0.0');
 
-let session: Promise<import("inspector").Session | undefined> | undefined = undefined;
+let session: Promise<import('inspector').Session | undefined> | undefined = undefined;
 
 function getSession() {
-    if (session !== undefined) {
-        return session;
-    }
-    if (!isNodeAtLeastV11) {
-        return Promise.resolve(undefined);
-    }
-    session = createInspectorSessionAsync();
+  if (session !== undefined) {
     return session;
+  }
+  if (!isNodeAtLeastV11) {
+    return Promise.resolve(undefined);
+  }
+  session = createInspectorSessionAsync();
+  return session;
 }
 
 const scriptIdToUrlMap = new Map<string, string>();
 
-async function createInspectorSessionAsync(): Promise<import("inspector").Session> {
-    // Delay loading 'inspector' as it is not available on early versions of node, so we can't
-    // require it on the outside.
-    const inspector = await import("inspector");
-    const inspectorSession = new inspector.Session();
-    inspectorSession.connect();
+async function createInspectorSessionAsync(): Promise<import('inspector').Session> {
+  // Delay loading 'inspector' as it is not available on early versions of node, so we can't
+  // require it on the outside.
+  const inspector = await import('inspector');
+  const inspectorSession = new inspector.Session();
+  inspectorSession.connect();
 
-    // Enable debugging support so we can hear about the Debugger.scriptParsed event. We need that
-    // event to know how to map from scriptId's to file-urls.
-    await new Promise<import("inspector").Debugger.EnableReturnType>((resolve, reject) => {
-        inspectorSession.post("Debugger.enable", (err, res) => err ? reject(err) : resolve(res));
-    });
+  // Enable debugging support so we can hear about the Debugger.scriptParsed event. We need that
+  // event to know how to map from scriptId's to file-urls.
+  await new Promise<import('inspector').Debugger.EnableReturnType>((resolve, reject) => {
+    inspectorSession.post('Debugger.enable', (err, res) => err ? reject(err) : resolve(res));
+  });
 
-    inspectorSession.addListener("Debugger.scriptParsed", event => {
-        const { scriptId, url } = event.params;
-        scriptIdToUrlMap.set(scriptId, url);
-    });
+  inspectorSession.addListener('Debugger.scriptParsed', event => {
+    const { scriptId, url } = event.params;
+    scriptIdToUrlMap.set(scriptId, url);
+  });
 
-    return inspectorSession;
+  return inspectorSession;
 }
 
 /**
@@ -69,11 +69,11 @@ async function createInspectorSessionAsync(): Promise<import("inspector").Sessio
  * @internal
  */
 export async function getSessionAsync() {
-    if (!isNodeAtLeastV11) {
-        throw new Error("Should not call getSessionAsync unless on Node11 or above.");
-    }
+  if (!isNodeAtLeastV11) {
+    throw new Error('Should not call getSessionAsync unless on Node11 or above.');
+  }
 
-    return getSession();
+  return getSession();
 }
 
 /**
@@ -82,13 +82,13 @@ export async function getSessionAsync() {
  * @internal
  */
 export async function isInitializedAsync() {
-    await getSession();
+  await getSession();
 }
 
 /**
  * Maps from a script-id to the local file url it corresponds to.
  * @internal
  */
-export function getScriptUrl(id: import("inspector").Runtime.ScriptId) {
-    return scriptIdToUrlMap.get(id);
+export function getScriptUrl(id: import('inspector').Runtime.ScriptId) {
+  return scriptIdToUrlMap.get(id);
 }

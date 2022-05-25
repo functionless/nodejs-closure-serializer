@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import * as utils from "./utils";
+import * as utils from './utils';
 
 /**
  * RunError can be used for terminating a program abruptly, but resulting in a clean exit rather
@@ -21,24 +21,24 @@ import * as utils from "./utils";
  * that as many errors as possible can be associated with a Resource.
  */
 export class RunError extends Error {
-    /**
+  /**
+   * Returns true if the given object is an instance of a RunError.  This is designed to work even when
+   * multiple copies of the Pulumi SDK have been loaded into the same process.
+   */
+  public static isInstance(obj: any): obj is RunError {
+    return utils.isInstance<RunError>(obj, '__pulumiRunError');
+  }
+
+  /**
      * A private field to help with RTTI that works in SxS scenarios.
      * @internal
      */
-    // eslint-disable-next-line @typescript-eslint/naming-convention,no-underscore-dangle,id-blacklist,id-match
-    public readonly __pulumiRunError: boolean = true;
+  // eslint-disable-next-line @typescript-eslint/naming-convention,no-underscore-dangle,id-blacklist,id-match
+  public readonly __pulumiRunError: boolean = true;
 
-    /**
-     * Returns true if the given object is an instance of a RunError.  This is designed to work even when
-     * multiple copies of the Pulumi SDK have been loaded into the same process.
-     */
-    public static isInstance(obj: any): obj is RunError {
-        return utils.isInstance<RunError>(obj, "__pulumiRunError");
-    }
-
-    constructor(message: string) {
-        super(message);
-    }
+  constructor(message: string) {
+    super(message);
+  }
 }
 
 /**
@@ -48,22 +48,22 @@ export class RunError extends Error {
  * no usefulness of presenting that stack to the user.
  */
 export class ResourceError extends Error {
-    /**
-     * A private field to help with RTTI that works in SxS scenarios.
-     * @internal
-     */
-    // eslint-disable-next-line @typescript-eslint/naming-convention, no-underscore-dangle, id-blacklist, id-match
-    public readonly __pulumResourceError: boolean = true;
-
-    /**
+  /**
      * Returns true if the given object is an instance of a ResourceError.  This is designed to work even when
      * multiple copies of the Pulumi SDK have been loaded into the same process.
      */
-    public static isInstance(obj: any): obj is ResourceError {
-        return utils.isInstance<ResourceError>(obj, "__pulumResourceError");
-    }
+  public static isInstance(obj: any): obj is ResourceError {
+    return utils.isInstance<ResourceError>(obj, '__pulumResourceError');
+  }
 
-    constructor(message: string, public hideStack?: boolean) {
-        super(message);
-    }
+  /**
+     * A private field to help with RTTI that works in SxS scenarios.
+     * @internal
+     */
+  // eslint-disable-next-line @typescript-eslint/naming-convention, no-underscore-dangle, id-blacklist, id-match
+  public readonly __pulumResourceError: boolean = true;
+
+  constructor(message: string, public hideStack?: boolean) {
+    super(message);
+  }
 }

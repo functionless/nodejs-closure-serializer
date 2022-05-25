@@ -1,47 +1,47 @@
-const { typescript } = require("projen");
+const { typescript } = require('projen');
 const project = new typescript.TypeScriptProject({
-  defaultReleaseBranch: "main",
-  name: "@functionless/nodejs-closure-serializer",
+  defaultReleaseBranch: 'main',
+  name: '@functionless/nodejs-closure-serializer',
   deps: [
-    "normalize-package-data",
-    "read-package-tree",
-    "semver",
-    "ts-node",
-    "typescript",
-    "upath",
+    'normalize-package-data',
+    'read-package-tree',
+    'semver',
+    'ts-node',
+    'typescript',
+    'upath',
   ] /* Runtime dependencies of this module. */,
   description:
-    "A fork of the nodejs closure serializer in @pulumi/pulumi" /* The description is just a string that helps people understand the purpose of the package. */,
+    'A fork of the nodejs closure serializer in @pulumi/pulumi' /* The description is just a string that helps people understand the purpose of the package. */,
   devDeps: [
-    "@types/node",
-    "@types/normalize-package-data",
-    "@types/read-package-tree",
-    "@types/semver",
-    "@typescript-eslint/eslint-plugin",
-    "@typescript-eslint/parser",
-    "eslint",
-    "eslint-plugin-header",
-    "eslint-plugin-import",
-    "mockpackage@file:test/mockpackage",
+    '@types/node',
+    '@types/normalize-package-data',
+    '@types/read-package-tree',
+    '@types/semver',
+    '@typescript-eslint/eslint-plugin',
+    '@typescript-eslint/parser',
+    'eslint',
+    'eslint-plugin-header',
+    'eslint-plugin-import',
+    'mockpackage@file:test/mockpackage',
   ] /* Build dependencies for this module. */,
   // packageName: undefined,  /* The "name" in package.json. */
   tsconfig: {
     compilerOptions: {
       skipLibCheck: true,
-      target: "ES2016",
-      module: "commonjs",
-      moduleResolution: "node"
+      target: 'ES2016',
+      module: 'commonjs',
+      moduleResolution: 'node',
     },
   },
   tsconfigDev: {
-    exclude: ["test/tsClosureCases.spec.ts"],
+    exclude: ['test/tsClosureCases.spec.ts'],
   },
   jestOptions: {
     jestConfig: {
       collectCoverage: false,
-      coveragePathIgnorePatterns: ["/test/", "/node_modules/"],
+      coveragePathIgnorePatterns: ['/test/', '/node_modules/'],
       globals: {
-        "ts-jest": {
+        'ts-jest': {
           isolatedModules: true,
         },
       },
@@ -50,8 +50,8 @@ const project = new typescript.TypeScriptProject({
   releaseToNpm: true,
 });
 
-const packageJson = project.tryFindObjectFile("package.json");
+const packageJson = project.tryFindObjectFile('package.json');
 
-packageJson.addOverride("jest.globals.ts-jest.isolatedModules", true);
+packageJson.addOverride('jest.globals.ts-jest.isolatedModules', true);
 
 project.synth();

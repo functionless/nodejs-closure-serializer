@@ -25,21 +25,21 @@ const config: {[key: string]: string} = {};
  * allConfig returns a copy of the full config map.
  */
 export function allConfig(): {[key: string]: string} {
-    return Object.assign({}, config);
+  return Object.assign({}, config);
 }
 
 /**
  * setConfig sets a configuration variable.
  */
 export function setConfig(k: string, v: string): void {
-    config[cleanKey(k)] = v;
+  config[cleanKey(k)] = v;
 }
 
 /**
  * getConfig returns a configuration variable's value or undefined if it is unset.
  */
 export function getConfig(k: string): string | undefined {
-    return config[k];
+  return config[k];
 }
 
 /**
@@ -50,11 +50,11 @@ export function getConfig(k: string): string | undefined {
  * language host to not add this :config: thing and remove this function.
  */
 function cleanKey(key: string): string {
-    const idx = key.indexOf(":");
+  const idx = key.indexOf(':');
 
-    if (idx > 0 && key.startsWith("config:", idx + 1)) {
-        return key.substring(0, idx) + ":" + key.substring(idx + 1 + "config:".length);
-    }
+  if (idx > 0 && key.startsWith('config:', idx + 1)) {
+    return key.substring(0, idx) + ':' + key.substring(idx + 1 + 'config:'.length);
+  }
 
-    return key;
+  return key;
 }

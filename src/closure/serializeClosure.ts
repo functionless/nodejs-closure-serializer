@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import * as closure from "./createClosure";
-import * as utils from "./utils";
+import * as closure from './createClosure';
+import * as utils from './utils';
 
 /**
  * SerializeFunctionArgs are arguments used to serialize a JavaScript function
@@ -76,9 +76,9 @@ export interface SerializedFunction {
  */
 export async function serializeFunction(
   func: Function,
-  args: SerializeFunctionArgs = {}
+  args: SerializeFunctionArgs = {},
 ): Promise<SerializedFunction> {
-  const exportName = args.exportName || "handler";
+  const exportName = args.exportName || 'handler';
   const serialize = args.serialize || ((_) => true);
   const isFactoryFunction =
     args.isFactoryFunction === undefined ? false : args.isFactoryFunction;
@@ -96,7 +96,7 @@ export async function serializeFunction(
 function serializeJavaScriptText(
   outerClosure: closure.ClosureInfo,
   exportName: string,
-  isFactoryFunction: boolean
+  isFactoryFunction: boolean,
 ): SerializedFunction {
   // Now produce a textual representation of the closure and its serialized captured environment.
 
@@ -114,13 +114,13 @@ function serializeJavaScriptText(
   const envVarNames = new Set<string>();
   const functionInfoToEnvVar = new Map<closure.FunctionInfo, string>();
 
-  let environmentText = "";
-  let functionText = "";
+  let environmentText = '';
+  let functionText = '';
 
   const outerFunctionName = emitFunctionAndGetName(outerClosure.func);
 
   if (environmentText) {
-    environmentText = "\n" + environmentText;
+    environmentText = '\n' + environmentText;
   }
 
   // Export the appropriate value.  For a normal function, this will just be exporting the name of
@@ -128,14 +128,14 @@ function serializeJavaScriptText(
   // the function produced by invoking the factory function once.
   let text: string;
   const exportText = `exports.${exportName} = ${outerFunctionName}${
-    isFactoryFunction ? "()" : ""
+    isFactoryFunction ? '()' : ''
   };`;
   if (isFactoryFunction) {
     // for a factory function, we need to call the function at the end.  That way all the logic
     // to set up the environment has run.
-    text = environmentText + functionText + "\n" + exportText;
+    text = environmentText + functionText + '\n' + exportText;
   } else {
-    text = exportText + "\n" + environmentText + functionText;
+    text = exportText + '\n' + environmentText + functionText;
   }
 
   return { text, exportName };
@@ -148,7 +148,7 @@ function serializeJavaScriptText(
     if (!functionName) {
       functionName = functionInfo.name
         ? createEnvVarName(functionInfo.name, /*addIndexAtEnd:*/ false)
-        : createEnvVarName("f", /*addIndexAtEnd:*/ true);
+        : createEnvVarName('f', /*addIndexAtEnd:*/ true);
       functionInfoToEnvVar.set(functionInfo, functionName);
 
       emitFunctionWorker(functionInfo, functionName);
@@ -159,7 +159,7 @@ function serializeJavaScriptText(
 
   function emitFunctionWorker(
     functionInfo: closure.FunctionInfo,
-    varName: string
+    varName: string,
   ) {
     const capturedValues = envFromEnvObj(functionInfo.capturedValues);
 
@@ -171,29 +171,29 @@ function serializeJavaScriptText(
 
     const parameters = [...Array(functionInfo.paramCount)]
       .map((_, index) => `__${index}`)
-      .join(", ");
+      .join(', ');
 
     functionText +=
-      "\n" +
-      "function " +
+      '\n' +
+      'function ' +
       varName +
-      "(" +
+      '(' +
       parameters +
-      ") {\n" +
-      "  return (function() {\n" +
-      "    with(" +
+      ') {\n' +
+      '  return (function() {\n' +
+      '    with(' +
       envObjToString(capturedValues) +
-      ") {\n\n" +
-      "return " +
+      ') {\n\n' +
+      'return ' +
       functionInfo.code +
-      ";\n\n" +
-      "    }\n" +
-      "  }).apply(" +
+      ';\n\n' +
+      '    }\n' +
+      '  }).apply(' +
       thisCapture +
-      ", " +
+      ', ' +
       argumentsCapture +
-      ").apply(this, arguments);\n" +
-      "}\n";
+      ').apply(this, arguments);\n' +
+      '}\n';
 
     // If this function is complex (i.e. non-default __proto__, or has properties, etc.)
     // then emit those as well.
@@ -208,8 +208,8 @@ function serializeJavaScriptText(
   function envFromEnvObj(env: closure.PropertyMap): Record<string, string> {
     const envObj: Record<string, string> = {};
     for (const [keyEntry, { entry: valEntry }] of env) {
-      if (typeof keyEntry.json !== "string") {
-        throw new Error("PropertyMap key was not a string.");
+      if (typeof keyEntry.json !== 'string') {
+        throw new Error('PropertyMap key was not a string.');
       }
 
       const key = keyEntry.json;
@@ -241,9 +241,9 @@ function serializeJavaScriptText(
 
   function simpleEnvEntryToString(
     envEntry: closure.Entry,
-    varName: string
+    varName: string,
   ): string {
-    if (envEntry.hasOwnProperty("json")) {
+    if (envEntry.hasOwnProperty('json')) {
       return JSON.stringify(envEntry.json);
     } else if (envEntry.function !== undefined) {
       return emitFunctionAndGetName(envEntry.function);
@@ -258,13 +258,13 @@ function serializeJavaScriptText(
     } else if (envEntry.promise) {
       return `Promise.resolve(${envEntryToString(envEntry.promise, varName)})`;
     } else {
-      throw new Error("Malformed: " + JSON.stringify(envEntry));
+      throw new Error('Malformed: ' + JSON.stringify(envEntry));
     }
   }
 
   function complexEnvEntryToString(
     envEntry: closure.Entry,
-    varName: string
+    varName: string,
   ): string {
     // Call all environment variables __e<num> to make them unique.  But suffix
     // them with the original name of the property to help provide context when
@@ -279,7 +279,7 @@ function serializeJavaScriptText(
     } else if (envEntry.regexp) {
       const { source, flags } = envEntry.regexp;
       const regexVal = `new RegExp(${JSON.stringify(source)}, ${JSON.stringify(
-        flags
+        flags,
       )})`;
       const entryString = `var ${envVar} = ${regexVal};\n`;
 
@@ -293,17 +293,17 @@ function serializeJavaScriptText(
     const trimLeadingUnderscoreRegex = /^_*/g;
     const legalName = makeLegalJSName(baseName).replace(
       trimLeadingUnderscoreRegex,
-      ""
+      '',
     );
     let index = 0;
 
     let currentName = addIndexAtEnd
-      ? "__" + legalName + index
-      : "__" + legalName;
+      ? '__' + legalName + index
+      : '__' + legalName;
     while (envVarNames.has(currentName)) {
       currentName = addIndexAtEnd
-        ? "__" + legalName + index
-        : "__" + index + "_" + legalName;
+        ? '__' + legalName + index
+        : '__' + index + '_' + legalName;
       index++;
     }
 
@@ -314,7 +314,7 @@ function serializeJavaScriptText(
   function emitObject(
     envVar: string,
     obj: closure.ObjectInfo,
-    varName: string
+    varName: string,
   ): void {
     const complex = isComplex(obj);
 
@@ -331,12 +331,12 @@ function serializeJavaScriptText(
         const key = Symbol.keyFor(obj.sym);
         environmentText += key
           ? // Symbol.keyFor returns a key when the symbol was originally registered globally
-            // In this case, lets register or get the global symbol.
-            `var ${envVar} = Symbol.for("${key}");\n`
+        // In this case, lets register or get the global symbol.
+          `var ${envVar} = Symbol.for("${key}");\n`
           : // Local symbols will return undefined for keyFor, lets make another local symbol.
           obj.sym.description
-          ? `var ${envVar} = Symbol("${obj.sym.description}");\n`
-          : `var ${envVar} = Symbol();\n`;
+            ? `var ${envVar} = Symbol("${obj.sym.description}");\n`
+            : `var ${envVar} = Symbol();\n`;
       } else {
         environmentText += `var ${envVar} = {};\n`;
       }
@@ -349,12 +349,12 @@ function serializeJavaScriptText(
 
       for (const [keyEntry, { entry: valEntry }] of obj.env) {
         const keyName =
-          typeof keyEntry.json === "string" ? keyEntry.json : "sym";
+          typeof keyEntry.json === 'string' ? keyEntry.json : 'sym';
         const propName = envEntryToString(keyEntry, keyName);
         const propVal = simpleEnvEntryToString(valEntry, keyName);
 
         if (
-          typeof keyEntry.json === "string" &&
+          typeof keyEntry.json === 'string' &&
           utils.isLegalMemberName(keyEntry.json)
         ) {
           props.push(`${keyEntry.json}: ${propVal}`);
@@ -363,7 +363,7 @@ function serializeJavaScriptText(
         }
       }
 
-      const allProps = props.join(", ");
+      const allProps = props.join(', ');
       const entryString = `var ${envVar} = {${allProps}};\n`;
       environmentText += entryString;
     }
@@ -390,7 +390,7 @@ function serializeJavaScriptText(
   }
 
   function isSimplePropertyInfo(
-    info: closure.PropertyInfo | undefined
+    info: closure.PropertyInfo | undefined,
   ): boolean {
     if (!info) {
       return true;
@@ -408,17 +408,17 @@ function serializeJavaScriptText(
   function emitComplexObjectProperties(
     envVar: string,
     varName: string,
-    objEntry: closure.ObjectInfo
+    objEntry: closure.ObjectInfo,
   ): void {
     for (const [keyEntry, { info, entry: valEntry }] of objEntry.env) {
-      const subName = typeof keyEntry.json === "string" ? keyEntry.json : "sym";
-      const keyString = envEntryToString(keyEntry, varName + "_" + subName);
-      const valString = envEntryToString(valEntry, varName + "_" + subName);
+      const subName = typeof keyEntry.json === 'string' ? keyEntry.json : 'sym';
+      const keyString = envEntryToString(keyEntry, varName + '_' + subName);
+      const valString = envEntryToString(valEntry, varName + '_' + subName);
 
       if (isSimplePropertyInfo(info)) {
         // normal property.  Just emit simply as a direct assignment.
         if (
-          typeof keyEntry.json === "string" &&
+          typeof keyEntry.json === 'string' &&
           utils.isLegalMemberName(keyEntry.json)
         ) {
           environmentText += `${envVar}.${keyEntry.json} = ${valString};\n`;
@@ -434,7 +434,7 @@ function serializeJavaScriptText(
     function emitDefineProperty(
       desc: closure.PropertyInfo,
       entryValue: string,
-      propName: string
+      propName: string,
     ) {
       const copy: any = {};
       if (desc.configurable) {
@@ -456,7 +456,7 @@ function serializeJavaScriptText(
         copy.value = entryValue;
       }
       const line = `Object.defineProperty(${envVar}, ${propName}, ${envObjToString(
-        copy
+        copy,
       )});\n`;
       environmentText += line;
     }
@@ -465,7 +465,7 @@ function serializeJavaScriptText(
   function emitArray(
     envVar: string,
     arr: closure.Entry[],
-    varName: string
+    varName: string,
   ): void {
     if (
       arr.some(deepContainsObjOrArrayOrRegExp) ||
@@ -481,10 +481,10 @@ function serializeJavaScriptText(
       // with sparse arrays.  i.e. if the array has length 1k, but only has one value in it
       // set, we can just set htat value, instead of setting 999 undefineds.
       for (const key of Object.getOwnPropertyNames(arr)) {
-        if (key !== "length") {
+        if (key !== 'length') {
           const entryString = envEntryToString(
             arr[<any>key],
-            `${varName}_${key}`
+            `${varName}_${key}`,
           );
           environmentText += `${envVar}${
             isNumeric(key) ? `[${key}]` : `.${key}`
@@ -500,7 +500,7 @@ function serializeJavaScriptText(
         strings.push(simpleEnvEntryToString(arr[i], `${varName}_${i}`));
       }
 
-      const entryString = `var ${envVar} = [${strings.join(", ")}];\n`;
+      const entryString = `var ${envVar} = [${strings.join(', ')}];\n`;
       environmentText += entryString;
     }
   }
@@ -509,7 +509,7 @@ function serializeJavaScriptText(
 
 const makeLegalRegex = /[^0-9a-zA-Z_]/g;
 function makeLegalJSName(n: string) {
-  return n.replace(makeLegalRegex, () => "");
+  return n.replace(makeLegalRegex, () => '');
 }
 
 function isSparse<T>(arr: Array<T>) {
@@ -520,7 +520,7 @@ function isSparse<T>(arr: Array<T>) {
 }
 
 function hasNonNumericIndices<T>(arr: Array<T>) {
-  return Object.keys(arr).some((k) => k !== "length" && !isNumeric(k));
+  return Object.keys(arr).some((k) => k !== 'length' && !isNumeric(k));
 }
 
 function isNumeric(n: string) {
@@ -554,5 +554,5 @@ function deepContainsObjOrArrayOrRegExp(env: closure.Entry): boolean {
 function envObjToString(envObj: Record<string, string>): string {
   return `{ ${Object.keys(envObj)
     .map((k) => `${k}: ${envObj[k]}`)
-    .join(", ")} }`;
+    .join(', ')} }`;
 }

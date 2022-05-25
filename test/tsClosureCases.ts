@@ -983,7 +983,7 @@ return function /*asyncTest*/(test) {
                 done(caught);
             }
         });
-        go();
+        void go();
     };
 };
 
@@ -5676,8 +5676,8 @@ function __f1(__0) {
     with({  }) {
 
 return function /*constructor*/(name) {
-        if (name.endsWith(":config")) {
-            name = name.replace(/:config$/, "");
+        if (name.endsWith(':config')) {
+            name = name.replace(/:config$/, '');
         }
         this.name = name;
     };
@@ -5719,7 +5719,7 @@ function __f3(__0) {
     with({  }) {
 
 return function /*fullKey*/(key) {
-        return this.name + ":" + key;
+        return this.name + ':' + key;
     };
 
     }
@@ -5765,8 +5765,8 @@ function __f1(__0) {
     with({  }) {
 
 return function /*constructor*/(name) {
-        if (name.endsWith(":config")) {
-            name = name.replace(/:config$/, "");
+        if (name.endsWith(':config')) {
+            name = name.replace(/:config$/, '');
         }
         this.name = name;
     };
@@ -5808,7 +5808,7 @@ function __f3(__0) {
     with({  }) {
 
 return function /*fullKey*/(key) {
-        return this.name + ":" + key;
+        return this.name + ':' + key;
     };
 
     }

@@ -16,29 +16,29 @@
  * debug logs a debug-level message that is generally hidden from end-users.
  */
 export function debug(_msg: string) {
-    return Promise.resolve();
+  return Promise.resolve();
 }
 
 /**
  * info logs an informational message that is generally printed to stdout during resource operations.
  */
 export function info(msg: string) {
-    console.log(`info: [runtime] ${msg}`);
-    return Promise.resolve();
+  console.log(`info: [runtime] ${msg}`);
+  return Promise.resolve();
 }
 
 /**
  * warn logs a warning to indicate that something went wrong, but not catastrophically so.
  */
 export function warn(msg: string) {
-    console.warn(`warning: [runtime] ${msg}`);
-    return Promise.resolve();
+  console.warn(`warning: [runtime] ${msg}`);
+  return Promise.resolve();
 }
 
 /**
  * error logs a fatal condition. Consider raising an exception after calling error to stop the Pulumi program.
  */
 export function error(msg: string) {
-    console.error(`error: [runtime] ${msg}`);
-    return Promise.resolve();
+  console.error(`error: [runtime] ${msg}`);
+  return Promise.resolve();
 }

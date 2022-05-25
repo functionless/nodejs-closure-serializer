@@ -19,32 +19,29 @@ export type MochaFunc = (err: Error) => void;
 // testing and our TypeScript async tests.
 /** @internal */
 export function asyncTest(test: () => Promise<void>): (func: MochaFunc) => void {
-    return (done: (err: any) => void) => {
-        const go = async () => {
-            let caught: Error | undefined;
-            try {
-                await test();
-            }
-            catch (err) {
-                caught = err;
-            }
-            finally {
-                done(caught);
-            }
-        };
-        go();
+  return (done: (err: any) => void) => {
+    const go = async () => {
+      let caught: Error | undefined;
+      try {
+        await test();
+      } catch (err) {
+        caught = err;
+      } finally {
+        done(caught);
+      }
     };
+    void go();
+  };
 }
 
 // A helper function for asynchronous tests that throw.
 /** @internal */
 export async function assertAsyncThrows(test: () => Promise<void>): Promise<string> {
-    try {
-        await test();
-    }
-    catch (err) {
-        return err.message;
-    }
+  try {
+    await test();
+  } catch (err) {
+    return err.message;
+  }
 
-    throw Error("Function was expected to throw, but didn't");
+  throw Error("Function was expected to throw, but didn't");
 }

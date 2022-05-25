@@ -1,1 +1,1 @@
-export { serializeFunction } from "./closure/serializeClosure";
+export { serializeFunction } from './closure/serializeClosure';
