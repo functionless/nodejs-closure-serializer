@@ -17,7 +17,6 @@
 // Make sure we are listening for v8 events as they're necessary to get things like file locations
 // for serialization errors.  We need to do this first, before we even get around to running tests.
 import * as v8Hooks from "../src/closure/v8Hooks";
-import { describe, test, beforeAll, jest, expect } from "@jest/globals";
 
 jest.setTimeout(10000);
 

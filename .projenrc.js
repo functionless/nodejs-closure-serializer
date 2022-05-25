@@ -30,8 +30,7 @@ const project = new typescript.TypeScriptProject({
       skipLibCheck: true,
       target: "ES2016",
       module: "commonjs",
-      moduleResolution: "node",
-      esModuleInterop: false
+      moduleResolution: "node"
     },
   },
   tsconfigDev: {
@@ -39,7 +38,6 @@ const project = new typescript.TypeScriptProject({
   },
   jestOptions: {
     jestConfig: {
-      injectGlobals: false,
       collectCoverage: false,
       coveragePathIgnorePatterns: ["/test/", "/node_modules/"],
       globals: {

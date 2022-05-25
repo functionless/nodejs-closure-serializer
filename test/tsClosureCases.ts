@@ -20,7 +20,6 @@ import { platformIndependentEOL } from "./constants";
 import typescript from "typescript";
 import * as semver from "semver";
 import { z } from "mockpackage";
-import { describe, it, expect } from "@jest/globals";
 
 import * as deploymentOnlyModule from "./deploymentOnlyModule";
 
@@ -5618,9 +5617,11 @@ return function () { console.log(getAll()); };
           func: function () { typescript.parseCommandLine([""]); },
           expectText: `exports.handler = __f0;
 
+var __typescript_1 = {default: require("typescript/lib/typescript.js")};
+
 function __f0() {
   return (function() {
-    with({ typescript_1: require("typescript/lib/typescript.js") }) {
+    with({ typescript_1: __typescript_1 }) {
 
 return function () { typescript_1.default.parseCommandLine([""]); };
 

@@ -14,7 +14,6 @@
 
 import * as assert from "assert";
 import * as pkg from "../src/closure/package";
-import { describe, it } from "@jest/globals";
 
 describe("module", () => {
     it("remaps exports correctly for mockpackage", () => {
