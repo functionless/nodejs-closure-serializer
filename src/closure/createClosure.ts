@@ -386,8 +386,8 @@ async function analyzeFunctionInfoAsync(
     frame.functionLocation.isArrowFunction = parsedFunction.isArrowFunction;
 
     const capturedValues: PropertyMap = new Map();
-    await processCapturedVariablesAsync(parsedFunction.capturedVariables.required, /*throwOnFailure:*/ true);
-    await processCapturedVariablesAsync(parsedFunction.capturedVariables.optional, /*throwOnFailure:*/ false);
+    await processCapturedVariablesAsync(parsedFunction.capturedVariables.required, /*throwOnFailure:*/ true, parsedFunction.invokedNames);
+    await processCapturedVariablesAsync(parsedFunction.capturedVariables.optional, /*throwOnFailure:*/ false, parsedFunction.invokedNames);
 
     const functionInfo: FunctionInfo = {
       code: parsedFunction.funcExprWithoutName,
@@ -491,7 +491,7 @@ async function analyzeFunctionInfoAsync(
     return functionInfo;
 
     async function processCapturedVariablesAsync(
-      capturedVariables: CapturedVariableMap, throwOnFailure: boolean): Promise<void> {
+      capturedVariables: CapturedVariableMap, throwOnFailure: boolean, invokedNames: Set<string>): Promise<void> {
 
       for (const name of capturedVariables.keys()) {
         let value: any;
@@ -519,7 +519,7 @@ async function analyzeFunctionInfoAsync(
           context.frames.push({ capturedVariableName: name });
         }
 
-        await processCapturedVariableAsync(capturedVariables, name, value);
+        await processCapturedVariableAsync(capturedVariables, name, value, invokedNames);
 
         // Only if we pushed a frame on should we pop it off.
         if (context.frames.length !== frameLength) {
@@ -529,13 +529,14 @@ async function analyzeFunctionInfoAsync(
     }
 
     async function processCapturedVariableAsync(
-      capturedVariables: CapturedVariableMap, name: string, value: any) {
+      capturedVariables: CapturedVariableMap, name: string, value: any, invokedNames: Set<string>) {
 
       const properties = capturedVariables.get(name);
+      const invoked = invokedNames.has(name);
       const serializedName = await getOrCreateNameEntryAsync(name, undefined, context, serialize, logInfo);
 
-      // try to only serialize out the properties that were used by the user's code.
-      const serializedValue = await getOrCreateEntryAsync(value, properties, context, serialize, logInfo);
+      // try to only serialize out the pro  perties that were used by the user's code.
+      const serializedValue = await getOrCreateEntryAsync(value, properties, context, serialize, logInfo, invoked);
 
       capturedValues.set(serializedName, { entry: serializedValue });
     }
@@ -760,9 +761,9 @@ function getOrCreateNameEntryAsync(
   name: string, capturedObjectProperties: CapturedPropertyChain[] | undefined,
   context: Context,
   serialize: (o: any) => boolean,
-  logInfo: boolean | undefined): Promise<Entry> {
+  logInfo: boolean | undefined, isInvoked: boolean = true): Promise<Entry> {
 
-  return getOrCreateEntryAsync(name, capturedObjectProperties, context, serialize, logInfo);
+  return getOrCreateEntryAsync(name, capturedObjectProperties, context, serialize, logInfo, isInvoked);
 }
 
 /**
@@ -774,7 +775,7 @@ async function getOrCreateEntryAsync(
   obj: any, capturedObjectProperties: CapturedPropertyChain[] | undefined,
   context: Context,
   serialize: (o: any) => boolean | any,
-  logInfo: boolean | undefined): Promise<Entry> {
+  logInfo: boolean | undefined, isInvoked: boolean = true): Promise<Entry> {
 
   // Check if this is a special number that we cannot json serialize.  Instead, we'll just inject
   // the code necessary to represent the number on the other side.  Note: we have to do this
@@ -794,15 +795,16 @@ async function getOrCreateEntryAsync(
   // See if we have a cache hit.  If yes, use the object as-is.
   let entry = context.cache.get(obj)!;
   if (entry) {
-    // Even though we've already serialized out this object, it might be the case
+    // Even though we've already serialized out this object or function, it might be the case
     // that we serialized out a different set of properties than the current set
     // we're being asked to serialize.  So we have to make sure that all these props
-    // are actually serialized.
-    if (entry.object
+    // are actually serialized. We also might have found that a method was invoked/constructed when it was
+    // previously not.
+    if (entry.object || entry.function
             // re-run the do not capture logic to 1) skip if necessary 2) rewrite if necessary
             // FIXME: do not capture shouldn't mutate... impact is not clear.
             && !doNotCapture()) {
-      await serializeObjectAsync();
+      await dispatchAnyAsync();
     }
 
     return entry;
@@ -887,10 +889,28 @@ async function getOrCreateEntryAsync(
     const normalizedModuleName = await findNormalizedModuleNameAsync(obj);
     if (normalizedModuleName) {
       await captureModuleAsync(normalizedModuleName);
-    } else if (obj instanceof Function) {
-      // Serialize functions recursively, and store them in a closure property.
-      entry.function = await analyzeFunctionInfoAsync(obj, context, serialize, logInfo);
-    } else if (obj instanceof Promise) {
+    } 
+    else if (obj instanceof Function) {
+      // if not invoked, let the property be treated like an object
+      let serializeAll = true; 
+      
+      if (
+        !isInvoked &&
+        capturedObjectProperties &&
+        capturedObjectProperties.length > 0
+      ) {
+        entry.object = entry.object || { env: new Map() };
+        serializeAll = await serializeSomeObjectPropertiesAsync(
+          entry.object,
+          capturedObjectProperties
+        );
+      }
+      if(serializeAll) {
+        // Serialize functions recursively, and store them in a closure property.
+        entry.function = await analyzeFunctionInfoAsync(obj, context, serialize, logInfo);
+      }
+    } 
+    else if (obj instanceof Promise) {
       const val = await obj;
       entry.promise = await getOrCreateEntryAsync(val, undefined, context, serialize, logInfo);
     } else if (obj instanceof Array) {

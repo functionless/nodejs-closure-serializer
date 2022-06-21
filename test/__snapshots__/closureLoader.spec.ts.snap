@@ -1,0 +1,310 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`after hooks closure Class complex statics 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+__f1.S = __f2;
+__f1.SX = __f3;
+__f1.x = 3;
+
+function __f1() {
+  return (function() {
+    with({  }) {
+
+return function /*constructor*/() { };
+
+    }
+  }).apply(undefined, undefined).apply(this, arguments);
+}
+
+function __f2() {
+  return (function() {
+    with({  }) {
+
+return () => \\"x\\";
+
+    }
+  }).apply(undefined, undefined).apply(this, arguments);
+}
+
+function __f3() {
+  return (function() {
+    with({ ClassWithMoreStatic: __f1 }) {
+
+return () => new ClassWithMoreStatic();
+
+    }
+  }).apply(undefined, undefined).apply(this, arguments);
+}
+
+function __f0() {
+  return (function() {
+    with({ ClassWithMoreStatic: __f1 }) {
+
+return () => {
+            return new ClassWithMoreStatic();
+        };
+
+    }
+  }).apply(undefined, undefined).apply(this, arguments);
+}
+",
+}
+`;
+
+exports[`after hooks closure Class complex statics only 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+__f1.S = __f2;
+__f1.SX = __f3;
+__f1.x = 3;
+
+function __f1() {
+  return (function() {
+    with({  }) {
+
+return function /*constructor*/() { };
+
+    }
+  }).apply(undefined, undefined).apply(this, arguments);
+}
+
+function __f2() {
+  return (function() {
+    with({  }) {
+
+return () => \\"x\\";
+
+    }
+  }).apply(undefined, undefined).apply(this, arguments);
+}
+
+function __f3() {
+  return (function() {
+    with({ ClassWithMoreStatic: __f1 }) {
+
+return () => new ClassWithMoreStatic();
+
+    }
+  }).apply(undefined, undefined).apply(this, arguments);
+}
+
+function __f0() {
+  return (function() {
+    with({ ClassWithMoreStatic: __f1 }) {
+
+return () => {
+            ClassWithMoreStatic.S();
+            ClassWithMoreStatic.SX();
+            console.log(ClassWithMoreStatic.x);
+        };
+
+    }
+  }).apply(undefined, undefined).apply(this, arguments);
+}
+",
+}
+`;
+
+exports[`after hooks closure Class complex statics only 2`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __F = {x: \\"hello\\"};
+
+function __f0() {
+  return (function() {
+    with({ F: __F }) {
+
+return () => {
+            console.log(F.x);
+        };
+
+    }
+  }).apply(undefined, undefined).apply(this, arguments);
+}
+",
+}
+`;
+
+exports[`after hooks closure Class statics 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __ClassWithStatic = {S: \\"hello\\"};
+
+function __f0() {
+  return (function() {
+    with({ ClassWithStatic: __ClassWithStatic }) {
+
+return () => {
+            return ClassWithStatic.S;
+        };
+
+    }
+  }).apply(undefined, undefined).apply(this, arguments);
+}
+",
+}
+`;
+
+exports[`after hooks closure Class statics with class invoke 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+__f1.S = \\"hello\\";
+
+function __f1() {
+  return (function() {
+    with({  }) {
+
+return function /*constructor*/() { };
+
+    }
+  }).apply(undefined, undefined).apply(this, arguments);
+}
+
+function __f0() {
+  return (function() {
+    with({ ClassWithStatic: __f1 }) {
+
+return () => {
+            const s = ClassWithStatic.S;
+            const a = new ClassWithStatic();
+            return s;
+        };
+
+    }
+  }).apply(undefined, undefined).apply(this, arguments);
+}
+",
+}
+`;
+
+exports[`after hooks closure Class statics with prototype reference 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+__f1.S = \\"hello\\";
+
+function __f1() {
+  return (function() {
+    with({  }) {
+
+return function /*constructor*/() { };
+
+    }
+  }).apply(undefined, undefined).apply(this, arguments);
+}
+
+function __f0() {
+  return (function() {
+    with({ ClassWithStatic: __f1 }) {
+
+return () => {
+            console.log(ClassWithStatic);
+            return ClassWithStatic.S;
+        };
+
+    }
+  }).apply(undefined, undefined).apply(this, arguments);
+}
+",
+}
+`;
+
+exports[`after hooks closure Class statics without static reference 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+__f1.S = \\"hello\\";
+
+function __f1() {
+  return (function() {
+    with({  }) {
+
+return function /*constructor*/() { };
+
+    }
+  }).apply(undefined, undefined).apply(this, arguments);
+}
+
+function __f0() {
+  return (function() {
+    with({ ClassWithStatic: __f1 }) {
+
+return () => {
+            return new ClassWithStatic();
+        };
+
+    }
+  }).apply(undefined, undefined).apply(this, arguments);
+}
+",
+}
+`;
+
+exports[`after hooks closure Function invoked with props 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+__F.x = \\"hello\\";
+
+function __F() {
+  return (function() {
+    with({ F: __F }) {
+
+return function /*F*/() {
+        return \\"wee\\";
+    };
+
+    }
+  }).apply(undefined, undefined).apply(this, arguments);
+}
+
+function __f0() {
+  return (function() {
+    with({ F: __F }) {
+
+return () => {
+            console.log(F());
+        };
+
+    }
+  }).apply(undefined, undefined).apply(this, arguments);
+}
+",
+}
+`;
+
+exports[`after hooks closure Function with props 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __F = {x: \\"hello\\"};
+
+function __f0() {
+  return (function() {
+    with({ F: __F }) {
+
+return () => {
+            console.log(F.x);
+        };
+
+    }
+  }).apply(undefined, undefined).apply(this, arguments);
+}
+",
+}
+`;

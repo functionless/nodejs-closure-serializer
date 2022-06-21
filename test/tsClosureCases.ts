@@ -29,6 +29,7 @@ interface ClosureCase {
   func?: Function; // the function whose body and closure to serialize.
   factoryFunc?: Function; // the function whose body and closure to serialize (as a factory).
   expectText?: string; // optionally also validate the serialization to JavaScript text.
+  snapshot?:boolean; // optionally snapshot the outputs
   error?: string; // error message we expect to be thrown if we are unable to serialize closure.
   afters?: ClosureCase[]; // an optional list of test cases to run afterwards.
 }
@@ -6026,6 +6027,110 @@ return ({ whatever }) => { };
 }
 `,
   });
+  
+  class ClassWithStatic {
+    static readonly S = "hello";
+
+    constructor() {}
+  }
+
+  cases.push({
+    title: "Class statics",
+    // @ts-ignore
+    // func: () => { const s = ASL.S; const a = new ASL(); return s; },
+    func: () => {
+      return ClassWithStatic.S;
+    },
+    snapshot: true,
+  });
+
+  cases.push({
+    title: "Class statics with prototype reference",
+    // @ts-ignore
+    // func: () => { const s = ASL.S; const a = new ASL(); return s; },
+    func: () => {
+      console.log(ClassWithStatic);
+      return ClassWithStatic.S;
+    },
+    snapshot: true,
+  });
+
+  cases.push({
+    title: "Class statics with class invoke",
+    // @ts-ignore
+    func: () => {
+      const s = ClassWithStatic.S;
+      const a = new ClassWithStatic();
+      return s;
+    },
+    snapshot: true,
+  });
+
+  cases.push({
+    title: "Class statics without static reference",
+    // @ts-ignore
+    func: () => {
+      return new ClassWithStatic();
+    },
+    snapshot: true,
+  });
+
+  class ClassWithMoreStatic {
+    static readonly S = () => "x";
+    static readonly SX = () => new ClassWithMoreStatic();
+
+    static x: number;
+
+    static {
+      ClassWithMoreStatic.x = 1 + 2;
+    }
+
+    constructor() {}
+  }
+
+  cases.push({
+    title: "Class complex statics",
+    // @ts-ignore
+    func: () => {
+      return new ClassWithMoreStatic();
+    },
+    snapshot: true,
+  });
+
+  cases.push({
+    title: "Class complex statics only",
+    // @ts-ignore
+    func: () => {
+      ClassWithMoreStatic.S();
+      ClassWithMoreStatic.SX();
+      console.log(ClassWithMoreStatic.x);
+    },
+    snapshot: true,
+  });
+
+  function F() {
+    return "wee";
+  }
+
+  F.x = "hello";
+
+  cases.push({
+    title: "Function with props",
+    // @ts-ignore
+    func: () => {
+     console.log(F.x);
+    },
+    snapshot: true,
+  });
+
+  cases.push({
+    title: "Function invoked with props",
+    // @ts-ignore
+    func: () => {
+     console.log(F());
+    },
+    snapshot: true,
+  });
 
   cases.push({
       title: "Deconstructing async arrow function",
@@ -6272,9 +6377,14 @@ return function /*reproHandler*/(input) {
           }
 
           // Invoke the test case.
-          if (test.expectText) {
-              const sf = await serializeFunctionTest(test);
-              compareTextWithWildcards(test.expectText, sf.text);
+          if (test.expectText || test.snapshot) {
+            const sf = await serializeFunctionTest(test);
+            if(test.expectText) {
+                compareTextWithWildcards(test.expectText, sf.text);
+              }
+              if(test.snapshot) {
+                expect(sf).toMatchSnapshot();
+              }
           }
           else {
               const message = await assertAsyncThrows(async () => {

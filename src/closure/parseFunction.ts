@@ -41,6 +41,9 @@ export interface ParsedFunction extends ParsedFunctionCode {
   // The set of variables the function attempts to capture.
   capturedVariables: CapturedVariables;
 
+  // names of variables that are invoked (new or call)
+  invokedNames: Set<string>;
+
   // Whether or not the real 'this' (i.e. not a lexically captured this) is used in the function.
   usesNonLexicalThis: boolean;
 }
@@ -114,7 +117,7 @@ export function parseFunction(funcString: string): [string, ParsedFunction] {
     return [parseError, <any>undefined];
   }
 
-  const capturedVariables = computeCapturedVariableNames(file!);
+  const [capturedVariables, invokedNames] = computeCapturedVariableNames(file!);
 
   // if we're looking at an arrow function, the it is always using lexical 'this's
   // so we don't have to bother even examining it.
@@ -123,6 +126,7 @@ export function parseFunction(funcString: string): [string, ParsedFunction] {
   const result = <ParsedFunction>functionCode;
   result.capturedVariables = capturedVariables;
   result.usesNonLexicalThis = usesNonLexicalThis;
+  result.invokedNames = invokedNames;
 
   if (result.capturedVariables.required.has('this')) {
     return [
@@ -407,13 +411,14 @@ function computeUsesNonLexicalThis(file: ts.SourceFile): boolean {
  * computeCapturedVariableNames computes the set of free variables in a given function string.  Note that this string is
  * expected to be the usual V8-serialized function expression text.
  */
-function computeCapturedVariableNames(file: ts.SourceFile): CapturedVariables {
+function computeCapturedVariableNames(file: ts.SourceFile): [CapturedVariables, Set<string>] {
   // Now that we've parsed the file, compute the free variables, and return them.
 
   let required: CapturedVariableMap = new Map();
   let optional: CapturedVariableMap = new Map();
   const scopes: Set<string>[] = [];
   let functionVars: Set<string> = new Set();
+  const invokedNames = new Set<string>();
 
   // Recurse through the tree.  We use typescript's AST here and generally walk the entire
   // tree. One subtlety to be aware of is that we generally assume that when we hit an
@@ -443,7 +448,7 @@ function computeCapturedVariableNames(file: ts.SourceFile): CapturedVariables {
   }
 
   void log.debug(`Found free variables: ${JSON.stringify(result)}`);
-  return result;
+  return [result, invokedNames];
 
   function isBuiltIn(ident: string): boolean {
     // __awaiter and __rest are never considered built-in.  We do this as async/await code will generate
@@ -493,6 +498,7 @@ function computeCapturedVariableNames(file: ts.SourceFile): CapturedVariables {
       return;
     }
 
+    // TODO: update to if with ts.is*Expr
     switch (node.kind) {
       case ts.SyntaxKind.Identifier:
         return visitIdentifier(<ts.Identifier>node);
@@ -501,7 +507,8 @@ function computeCapturedVariableNames(file: ts.SourceFile): CapturedVariables {
       case ts.SyntaxKind.Block:
         return visitBlockStatement(<ts.Block>node);
       case ts.SyntaxKind.CallExpression:
-        return visitCallExpression(<ts.CallExpression>node);
+      case ts.SyntaxKind.NewExpression:
+        return visitCallOrNewExpression(<ts.CallExpression | ts.NewExpression>node);
       case ts.SyntaxKind.CatchClause:
         return visitCatchClause(<ts.CatchClause>node);
       case ts.SyntaxKind.MethodDeclaration:
@@ -727,7 +734,7 @@ function computeCapturedVariableNames(file: ts.SourceFile): CapturedVariables {
     scopes.pop();
   }
 
-  function visitCallExpression(node: ts.CallExpression): void {
+  function visitCallOrNewExpression(node: ts.CallExpression | ts.NewExpression): void {
     // Most call expressions are normal.  But we must special case one kind of function:
     // TypeScript's __awaiter functions.  They are of the form `__awaiter(this, void 0, void 0, function* (){})`,
 
@@ -743,7 +750,9 @@ function computeCapturedVariableNames(file: ts.SourceFile): CapturedVariables {
     // capture so that we pass 'this' along.
     walk(node.expression);
 
-    if (isAwaiterCall(node)) {
+    invokedNames.add(node.expression.getText());
+
+    if (ts.isCallExpression(node) && isAwaiterCall(node)) {
       return visitBaseFunction(
                 <ts.FunctionLikeDeclarationBase><ts.FunctionExpression>node.arguments[3],
                 /*isArrowFunction*/ true,
@@ -751,7 +760,7 @@ function computeCapturedVariableNames(file: ts.SourceFile): CapturedVariables {
     }
 
     // For normal calls, just walk all arguments normally.
-    for (const arg of node.arguments) {
+    for (const arg of node.arguments ?? []) {
       walk(arg);
     }
   }
