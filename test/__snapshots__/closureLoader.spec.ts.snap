@@ -157,6 +157,40 @@ return () => {
 }
 `;
 
+exports[`after hooks closure Class serialize all 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+__f1.S = \\"hello\\";
+__f1.T = \\"hello2\\";
+
+function __f1() {
+  return (function() {
+    with({  }) {
+
+return function /*constructor*/() { };
+
+    }
+  }).apply(undefined, undefined).apply(this, arguments);
+}
+
+function __f0() {
+  return (function() {
+    with({ ClassWithStatic: __f1 }) {
+
+return () => {
+            const doSomething = (c) => { };
+            return doSomething(ClassWithStatic);
+        };
+
+    }
+  }).apply(undefined, undefined).apply(this, arguments);
+}
+",
+}
+`;
+
 exports[`after hooks closure Class statics 1`] = `
 Object {
   "exportName": "handler",

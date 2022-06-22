@@ -6025,6 +6025,17 @@ return ({ whatever }) => { };
   });
 
   cases.push({
+    title: "Class serialize all",
+    // @ts-ignore
+    // func: () => { const s = ASL.S; const a = new ASL(); return s; },
+    func: () => {
+      const doSomething = (c: any) => {};
+      return doSomething(ClassWithStatic);
+    },
+    snapshot: true,
+  });
+
+  cases.push({
     title: "Class statics with prototype reference",
     // @ts-ignore
     // func: () => { const s = ASL.S; const a = new ASL(); return s; },
