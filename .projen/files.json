@@ -1,6 +1,7 @@
 {
   "files": [
     ".eslintrc.json",
+    ".git/hooks/pre-commit",
     ".gitattributes",
     ".github/pull_request_template.md",
     ".github/workflows/build.yml",
@@ -10,6 +11,8 @@
     ".gitignore",
     ".mergify.yml",
     ".npmignore",
+    ".prettierignore",
+    ".prettierrc.json",
     ".projen/deps.json",
     ".projen/files.json",
     ".projen/tasks.json",

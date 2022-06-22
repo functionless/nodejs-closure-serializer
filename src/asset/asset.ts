@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import * as utils from '../utils';
+import * as utils from "../utils";
 
 /**
  * Asset represents a single blob of text or data that is managed as a first class entity.
@@ -23,13 +23,13 @@ export abstract class Asset {
    * multiple copies of the Pulumi SDK have been loaded into the same process.
    */
   public static isInstance(obj: any): obj is Asset {
-    return utils.isInstance<Asset>(obj, '__pulumiAsset');
+    return utils.isInstance<Asset>(obj, "__pulumiAsset");
   }
 
   /**
-     * A private field to help with RTTI that works in SxS scenarios.
-     * @internal
-     */
+   * A private field to help with RTTI that works in SxS scenarios.
+   * @internal
+   */
   // eslint-disable-next-line @typescript-eslint/naming-convention,no-underscore-dangle,id-blacklist,id-match
   public readonly __pulumiAsset: boolean = true;
 }
@@ -50,8 +50,8 @@ export class Blob extends Asset {
  */
 export class FileAsset extends Asset {
   /**
-     * The path to the asset file.
-     */
+   * The path to the asset file.
+   */
   public readonly path: Promise<string>;
 
   constructor(path: string | Promise<string>) {
@@ -65,8 +65,8 @@ export class FileAsset extends Asset {
  */
 export class StringAsset extends Asset {
   /**
-     * The string contents.
-     */
+   * The string contents.
+   */
   public readonly text: Promise<string>;
 
   constructor(text: string | Promise<string>) {
@@ -82,8 +82,8 @@ export class StringAsset extends Asset {
  */
 export class RemoteAsset extends Asset {
   /**
-     * The URI where the asset lives.
-     */
+   * The URI where the asset lives.
+   */
   public readonly uri: Promise<string>;
 
   constructor(uri: string | Promise<string>) {
@@ -91,4 +91,3 @@ export class RemoteAsset extends Asset {
     this.uri = Promise.resolve(uri);
   }
 }
-

@@ -28,13 +28,16 @@ export function isInstance<T>(obj: any, name: keyof T): obj is T {
 }
 
 /** @internal */
-export function hasTrueBooleanMember(obj: any, memberName: string | number | symbol): boolean {
+export function hasTrueBooleanMember(
+  obj: any,
+  memberName: string | number | symbol
+): boolean {
   if (obj === undefined || obj === null) {
     return false;
   }
 
   const val = obj[memberName];
-  if (typeof val !== 'boolean') {
+  if (typeof val !== "boolean") {
     return false;
   }
 
