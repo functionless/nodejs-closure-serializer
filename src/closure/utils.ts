@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import * as ts from 'typescript';
+import * as ts from "typescript";
 
 const legalNameRegex = /^[a-zA-Z_][0-9a-zA-Z_]*$/;
 
@@ -28,10 +28,16 @@ export function isLegalFunctionName(n: string) {
   }
 
   const scanner = ts.createScanner(
-    ts.ScriptTarget.Latest, /*skipTrivia:*/false, ts.LanguageVariant.Standard, n);
+    ts.ScriptTarget.Latest,
+    /*skipTrivia:*/ false,
+    ts.LanguageVariant.Standard,
+    n
+  );
   const tokenKind = scanner.scan();
-  if (tokenKind !== ts.SyntaxKind.Identifier &&
-        tokenKind !== ts.SyntaxKind.ConstructorKeyword) {
+  if (
+    tokenKind !== ts.SyntaxKind.Identifier &&
+    tokenKind !== ts.SyntaxKind.ConstructorKeyword
+  ) {
     return false;
   }
 

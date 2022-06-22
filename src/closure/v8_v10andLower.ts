@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import * as semver from 'semver';
+import * as semver from "semver";
 
-const isNodeAtLeastV10 = semver.gte(process.version, '10.0.0');
+const isNodeAtLeastV10 = semver.gte(process.version, "10.0.0");
 
 // The V8 script object contains the name of the file that defined a function and a function
 // that convert a `V8SourcePosition` into a `V8SourceLocation`. (Conceptually - Positions are offsets
@@ -26,7 +26,7 @@ interface V8Script {
 
 // V8SourcePosition is an opaque value that should be passed verbatim to `V8Script.locationFromPosition`
 // in order to receive a V8SourceLocation.
-interface V8SourcePosition { }
+interface V8SourcePosition {}
 
 // V8SourceLocation contains metadata about a single location within a Script. For a function, it
 // refers to the last character of that function's declaration.
@@ -58,7 +58,7 @@ export async function getFunctionLocationAsync(func: Function) {
   const script = getScript(func);
   const { line, column } = getLineColumn();
 
-  return { file: script ? script.name : '', line, column };
+  return { file: script ? script.name : "", line, column };
 
   function getLineColumn() {
     if (script) {
@@ -91,21 +91,31 @@ function getScript(func: Function): V8Script | undefined {
   // The use of the Function constructor here and elsewhere in this file is because
   // because V8 intrinsics are not valid JavaScript identifiers; they all begin with '%',
   // which means that the TypeScript compiler issues errors for them.
-  const scriptFunc = new Function('func', 'return %FunctionGetScript(func);') as any;
+  const scriptFunc = new Function(
+    "func",
+    "return %FunctionGetScript(func);"
+  ) as any;
   return scriptFunc(func);
 }
-
 
 // The second intrinsic is `FunctionGetScriptSourcePosition`, which does about what you'd
 // expect. It returns a `V8SourcePosition`, which can be passed to `V8Script::locationFromPosition`
 // to produce a `V8SourceLocation`.
-const getSourcePosition: (func: Function) => V8SourcePosition =
-    new Function('func', 'return %FunctionGetScriptSourcePosition(func);') as any;
+const getSourcePosition: (func: Function) => V8SourcePosition = new Function(
+  "func",
+  "return %FunctionGetScriptSourcePosition(func);"
+) as any;
 
-function scriptPositionInfo(script: V8Script, pos: V8SourcePosition): {line: number; column: number} {
+function scriptPositionInfo(
+  script: V8Script,
+  pos: V8SourcePosition
+): { line: number; column: number } {
   if (isNodeAtLeastV10) {
-    const scriptPositionInfoFunc =
-            new Function('script', 'pos', 'return %ScriptPositionInfo(script, pos, false);') as any;
+    const scriptPositionInfoFunc = new Function(
+      "script",
+      "pos",
+      "return %ScriptPositionInfo(script, pos, false);"
+    ) as any;
 
     return scriptPositionInfoFunc(script, pos);
   }
@@ -116,8 +126,10 @@ function scriptPositionInfo(script: V8Script, pos: V8SourcePosition): {line: num
 
 /** @internal */
 export async function lookupCapturedVariableValueAsync(
-  func: Function, freeVariable: string, throwOnFailure: boolean): Promise<any> {
-
+  func: Function,
+  freeVariable: string,
+  throwOnFailure: boolean
+): Promise<any> {
   // The implementation of this function is now very straightforward since the intrinsics do all of the
   // difficult work.
   const count = getFunctionScopeCount(func);
@@ -129,7 +141,9 @@ export async function lookupCapturedVariableValueAsync(
   }
 
   if (throwOnFailure) {
-    throw new Error('Unexpected missing variable in closure environment: ' + freeVariable);
+    throw new Error(
+      "Unexpected missing variable in closure environment: " + freeVariable
+    );
   }
 
   return undefined;
@@ -140,14 +154,20 @@ export async function lookupCapturedVariableValueAsync(
 // the latter function returns the i'th entry in a function's scope chain, given a function and
 // index i.
 function getFunctionScopeDetails(func: Function, index: number): any[] {
-  const getFunctionScopeDetailsFunc =
-        new Function('func', 'index', 'return %GetFunctionScopeDetails(func, index);') as any;
+  const getFunctionScopeDetailsFunc = new Function(
+    "func",
+    "index",
+    "return %GetFunctionScopeDetails(func, index);"
+  ) as any;
 
   return getFunctionScopeDetailsFunc(func, index);
 }
 
 function getFunctionScopeCount(func: Function): number {
-  const getFunctionScopeCountFunc = new Function('func', 'return %GetFunctionScopeCount(func);') as any;
+  const getFunctionScopeCountFunc = new Function(
+    "func",
+    "return %GetFunctionScopeCount(func);"
+  ) as any;
   return getFunctionScopeCountFunc(func);
 }
 
@@ -156,7 +176,9 @@ function getFunctionScopeCount(func: Function): number {
 function getScopeForFunction(func: Function, index: number): V8ScopeDetails {
   const scopeDetails = getFunctionScopeDetails(func, index);
   return {
-    scopeObject: scopeDetails[V8ScopeDetailsFields.kScopeDetailsObjectIndex] as Record<string, any>,
+    scopeObject: scopeDetails[
+      V8ScopeDetailsFields.kScopeDetailsObjectIndex
+    ] as Record<string, any>,
   };
 }
 

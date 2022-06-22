@@ -19,17 +19,18 @@
 //
 // As a side-effect of importing this file, we must enable the --allow-natives-syntax V8 flag. This
 // is because we are using V8 intrinsics in order to implement this module.
-import * as v8 from 'v8';
-v8.setFlagsFromString('--allow-natives-syntax');
+import * as v8 from "v8";
+v8.setFlagsFromString("--allow-natives-syntax");
 
-
-import * as v8_v10andLower from './v8_v10andLower';
-import * as v8_v11andHigher from './v8_v11andHigher';
-import * as v8Hooks from './v8Hooks';
+import * as v8_v10andLower from "./v8_v10andLower";
+import * as v8_v11andHigher from "./v8_v11andHigher";
+import * as v8Hooks from "./v8Hooks";
 
 // Node majorly changed their introspection apis between 10.0 and 11.0 (removing outright some
 // of the APIs we use).  Detect if we're before or after this change and delegate to the
-const versionSpecificV8Module = v8Hooks.isNodeAtLeastV11 ? v8_v11andHigher : v8_v10andLower;
+const versionSpecificV8Module = v8Hooks.isNodeAtLeastV11
+  ? v8_v11andHigher
+  : v8_v10andLower;
 
 /**
  * Given a function and a free variable name, lookupCapturedVariableValue looks up the value of that free variable
@@ -42,11 +43,13 @@ const versionSpecificV8Module = v8Hooks.isNodeAtLeastV11 ? v8_v11andHigher : v8_
  * @returns The value of the free variable. If `throwOnFailure` is false, returns `undefined` if not found.
  * @internal
  */
-export const lookupCapturedVariableValueAsync = versionSpecificV8Module.lookupCapturedVariableValueAsync;
+export const lookupCapturedVariableValueAsync =
+  versionSpecificV8Module.lookupCapturedVariableValueAsync;
 
 /**
  * Given a function, returns the file, line and column number in the file where this function was
  * defined. Returns { "", 0, 0 } if the location cannot be found or if the given function has no Script.
  * @internal
  */
-export const getFunctionLocationAsync = versionSpecificV8Module.getFunctionLocationAsync;
+export const getFunctionLocationAsync =
+  versionSpecificV8Module.getFunctionLocationAsync;

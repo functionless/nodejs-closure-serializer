@@ -4468,7 +4468,9 @@ function __f0() {
   return (function() {
     with({ message: "Function 'b' cannot be called at runtime. It can only be used at deployment time.\\n\\nFunction code:\\n  () => console.log(\\"the actual function\\")\\n" }) {
 
-return () => { throw new Error(message); };
+return () => {
+                throw new Error(message);
+            };
 
     }
   }).apply(undefined, undefined).apply(this, arguments);
@@ -4911,30 +4913,7 @@ return function () { console.log(o.b.c.d); console.log(o.b.c); console.log(o.b);
       cases.push({
           title: "Analyze property chain #9",
           func: function () { console.log(o.b.name); },
-          expectText: `exports.handler = __f0;
-
-var __o = {b: __f1};
-
-function __f1() {
-  return (function() {
-    with({  }) {
-
-return function () { };
-
-    }
-  }).apply(undefined, undefined).apply(this, arguments);
-}
-
-function __f0() {
-  return (function() {
-    with({ o: __o }) {
-
-return function () { console.log(o.b.name); };
-
-    }
-  }).apply(undefined, undefined).apply(this, arguments);
-}
-`,
+          snapshot: true
       });
   }
 
@@ -5677,8 +5656,8 @@ function __f1(__0) {
     with({  }) {
 
 return function /*constructor*/(name) {
-        if (name.endsWith(':config')) {
-            name = name.replace(/:config$/, '');
+        if (name.endsWith(":config")) {
+            name = name.replace(/:config$/, "");
         }
         this.name = name;
     };
@@ -5720,7 +5699,7 @@ function __f3(__0) {
     with({  }) {
 
 return function /*fullKey*/(key) {
-        return this.name + ':' + key;
+        return this.name + ":" + key;
     };
 
     }
@@ -5766,8 +5745,8 @@ function __f1(__0) {
     with({  }) {
 
 return function /*constructor*/(name) {
-        if (name.endsWith(':config')) {
-            name = name.replace(/:config$/, '');
+        if (name.endsWith(":config")) {
+            name = name.replace(/:config$/, "");
         }
         this.name = name;
     };
@@ -5809,7 +5788,7 @@ function __f3(__0) {
     with({  }) {
 
 return function /*fullKey*/(key) {
-        return this.name + ':' + key;
+        return this.name + ":" + key;
     };
 
     }

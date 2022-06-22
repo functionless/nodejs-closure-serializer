@@ -1,5 +1,28 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`after hooks closure Analyze property chain #9 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __o = {};
+var __o_b = {};
+Object.defineProperty(__o_b, \\"name\\", { configurable: true, value: \\"b\\" });
+__o.b = __o_b;
+
+function __f0() {
+  return (function() {
+    with({ o: __o }) {
+
+return function () { console.log(o.b.name); };
+
+    }
+  }).apply(undefined, undefined).apply(this, arguments);
+}
+",
+}
+`;
+
 exports[`after hooks closure Class complex statics 1`] = `
 Object {
   "exportName": "handler",
@@ -101,28 +124,6 @@ return () => {
             ClassWithMoreStatic.S();
             ClassWithMoreStatic.SX();
             console.log(ClassWithMoreStatic.x);
-        };
-
-    }
-  }).apply(undefined, undefined).apply(this, arguments);
-}
-",
-}
-`;
-
-exports[`after hooks closure Class complex statics only 2`] = `
-Object {
-  "exportName": "handler",
-  "text": "exports.handler = __f0;
-
-var __F = {x: \\"hello\\"};
-
-function __f0() {
-  return (function() {
-    with({ F: __F }) {
-
-return () => {
-            console.log(F.x);
         };
 
     }
