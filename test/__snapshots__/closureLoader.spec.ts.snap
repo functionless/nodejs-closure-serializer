@@ -132,6 +132,30 @@ return () => {
 }
 `;
 
+exports[`after hooks closure Class nested statics 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __c = {};
+var __c_x = {S: \\"hello\\", T: \\"hello2\\"};
+__c.x = __c_x;
+
+function __f0() {
+  return (function() {
+    with({ c: __c }) {
+
+return () => {
+            return c.x.S + c.x.T;
+        };
+
+    }
+  }).apply(undefined, undefined).apply(this, arguments);
+}
+",
+}
+`;
+
 exports[`after hooks closure Class statics 1`] = `
 Object {
   "exportName": "handler",
@@ -160,6 +184,7 @@ Object {
   "text": "exports.handler = __f0;
 
 __f1.S = \\"hello\\";
+__f1.T = \\"hello2\\";
 
 function __f1() {
   return (function() {
@@ -194,6 +219,7 @@ Object {
   "text": "exports.handler = __f0;
 
 __f1.S = \\"hello\\";
+__f1.T = \\"hello2\\";
 
 function __f1() {
   return (function() {
@@ -227,6 +253,7 @@ Object {
   "text": "exports.handler = __f0;
 
 __f1.S = \\"hello\\";
+__f1.T = \\"hello2\\";
 
 function __f1() {
   return (function() {

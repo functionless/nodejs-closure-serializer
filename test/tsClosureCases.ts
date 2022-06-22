@@ -6030,6 +6030,7 @@ return ({ whatever }) => { };
   
   class ClassWithStatic {
     static readonly S = "hello";
+    static readonly T = "hello2";
 
     constructor() {}
   }
@@ -6128,6 +6129,18 @@ return ({ whatever }) => { };
     // @ts-ignore
     func: () => {
      console.log(F());
+    },
+    snapshot: true,
+  });
+
+  const c = { x: ClassWithStatic };
+
+  cases.push({
+    title: "Class nested statics",
+    // @ts-ignore
+    // func: () => { const s = ASL.S; const a = new ASL(); return s; },
+    func: () => {
+      return c.x.S + c.x.T;
     },
     snapshot: true,
   });

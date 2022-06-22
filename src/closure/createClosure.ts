@@ -409,7 +409,7 @@ async function analyzeFunctionInfoAsync(
             !isAsyncFunction &&
             !isDerivedNoCaptureConstructor(func)) {
 
-      const protoEntry = await getOrCreateEntryAsync(proto, undefined, context, serialize, logInfo);
+      const protoEntry = await getOrCreateEntryAsync(proto, context, serialize, logInfo);
       functionInfo.proto = protoEntry;
 
       if (functionString.startsWith('class ')) {
@@ -451,8 +451,8 @@ async function analyzeFunctionInfoAsync(
         continue;
       }
 
-      const keyEntry = await getOrCreateEntryAsync(getNameOrSymbol(descriptor), undefined, context, serialize, logInfo);
-      const valEntry = await getOrCreateEntryAsync(funcProp, undefined, context, serialize, logInfo);
+      const keyEntry = await getOrCreateEntryAsync(getNameOrSymbol(descriptor), context, serialize, logInfo);
+      const valEntry = await getOrCreateEntryAsync(funcProp, context, serialize, logInfo);
       const propertyInfo = await createPropertyInfoAsync(descriptor, context, serialize, logInfo);
 
       functionInfo.env.set(keyEntry, { info: propertyInfo, entry: valEntry });
@@ -536,7 +536,7 @@ async function analyzeFunctionInfoAsync(
       const serializedName = await getOrCreateNameEntryAsync(name, undefined, context, serialize, logInfo);
 
       // try to only serialize out the pro  perties that were used by the user's code.
-      const serializedValue = await getOrCreateEntryAsync(value, properties, context, serialize, logInfo, invoked);
+      const serializedValue = await getOrCreateEntryAsync(value, properties, invoked, context, serialize, logInfo);
 
       capturedValues.set(serializedName, { entry: serializedValue });
     }
@@ -747,11 +747,11 @@ async function createPropertyInfoAsync(
   propertyInfo.writable = descriptor.writable;
   if (descriptor.get) {
     propertyInfo.get = await getOrCreateEntryAsync(
-      descriptor.get, undefined, context, serialize, logInfo);
+      descriptor.get, context, serialize, logInfo);
   }
   if (descriptor.set) {
     propertyInfo.set = await getOrCreateEntryAsync(
-      descriptor.set, undefined, context, serialize, logInfo);
+      descriptor.set, context, serialize, logInfo);
   }
 
   return propertyInfo;
@@ -763,7 +763,7 @@ function getOrCreateNameEntryAsync(
   serialize: (o: any) => boolean,
   logInfo: boolean | undefined, isInvoked: boolean = true): Promise<Entry> {
 
-  return getOrCreateEntryAsync(name, capturedObjectProperties, context, serialize, logInfo, isInvoked);
+  return getOrCreateEntryAsync(name, capturedObjectProperties, isInvoked, context, serialize, logInfo);
 }
 
 /**
@@ -771,435 +771,577 @@ function getOrCreateNameEntryAsync(
  * entry.  If propNames is provided, and is non-empty, then only attempt to serialize out those
  * specific properties.  If propNames is not provided, or is empty, serialize out all properties.
  */
-async function getOrCreateEntryAsync(
-  obj: any, capturedObjectProperties: CapturedPropertyChain[] | undefined,
-  context: Context,
-  serialize: (o: any) => boolean | any,
-  logInfo: boolean | undefined, isInvoked: boolean = true): Promise<Entry> {
+ async function getOrCreateEntryAsync(
+   obj: any,
+   context: Context,
+   serialize: (o: any) => boolean | any,
+   logInfo: boolean | undefined
+ ): Promise<Entry>;
+ /**
+  * 
+  * @param isInvoked - true if the parent is invoked
+  */
+ async function getOrCreateEntryAsync(
+   obj: any,
+   capturedObjectProperties: CapturedPropertyChain[] | undefined,
+   isInvoked: boolean,
+   context: Context,
+   serialize: (o: any) => boolean | any,
+   logInfo: boolean | undefined
+ ): Promise<Entry>;
+ async function getOrCreateEntryAsync(
+   obj: any,
+   capturedObjectPropertiesOrContext:
+     | CapturedPropertyChain[]
+     | undefined
+     | Context,
+   isInvokedOrSerialize: boolean | ((o: any) => boolean | any),
+   contextOrLogInfo: Context | boolean | undefined,
+   serializeMaybe?: (o: any) => boolean | any,
+   logInfoMaybe?: boolean | undefined
+ ): Promise<Entry> {
+   const [capturedObjectProperties, isInvoked, context, serialize, logInfo] =
+     serializeMaybe && typeof contextOrLogInfo === "object"
+       ? [
+           capturedObjectPropertiesOrContext as  CapturedPropertyChain[] | undefined,
+           isInvokedOrSerialize as boolean,
+           contextOrLogInfo as Context,
+           serializeMaybe as (o: any) => boolean | any,
+           logInfoMaybe as boolean,
+         ]
+       : [
+           undefined,
+           undefined,
+           capturedObjectPropertiesOrContext as Context,
+           isInvokedOrSerialize as (o: any) => boolean | any,
+           contextOrLogInfo as boolean,
+         ];
 
-  // Check if this is a special number that we cannot json serialize.  Instead, we'll just inject
-  // the code necessary to represent the number on the other side.  Note: we have to do this
-  // before we do *anything* else.  This is because these special numbers don't even work in maps
-  // properly.  So, if we lookup the value in a map, we may get the cached value for something
-  // else *entirely*.  For example, 0 and -0 will map to the same entry.
-  if (typeof obj === 'number') {
-    if (Object.is(obj, -0)) { return { expr: '-0' }; }
-    if (Object.is(obj, NaN)) { return { expr: 'NaN' }; }
-    if (Object.is(obj, Infinity)) { return { expr: 'Infinity' }; }
-    if (Object.is(obj, -Infinity)) { return { expr: '-Infinity' }; }
+   // Check if this is a special number that we cannot json serialize.  Instead, we'll just inject
+   // the code necessary to represent the number on the other side.  Note: we have to do this
+   // before we do *anything* else.  This is because these special numbers don't even work in maps
+   // properly.  So, if we lookup the value in a map, we may get the cached value for something
+   // else *entirely*.  For example, 0 and -0 will map to the same entry.
+   if (typeof obj === "number") {
+     if (Object.is(obj, -0)) {
+       return { expr: "-0" };
+     }
+     if (Object.is(obj, NaN)) {
+       return { expr: "NaN" };
+     }
+     if (Object.is(obj, Infinity)) {
+       return { expr: "Infinity" };
+     }
+     if (Object.is(obj, -Infinity)) {
+       return { expr: "-Infinity" };
+     }
 
-    // Not special, just use normal json serialization.
-    return { json: obj };
-  }
+     // Not special, just use normal json serialization.
+     return { json: obj };
+   }
 
-  // See if we have a cache hit.  If yes, use the object as-is.
-  let entry = context.cache.get(obj)!;
-  if (entry) {
-    // Even though we've already serialized out this object or function, it might be the case
-    // that we serialized out a different set of properties than the current set
-    // we're being asked to serialize.  So we have to make sure that all these props
-    // are actually serialized. We also might have found that a method was invoked/constructed when it was
-    // previously not.
-    if (entry.object || entry.function
-            // re-run the do not capture logic to 1) skip if necessary 2) rewrite if necessary
-            // FIXME: do not capture shouldn't mutate... impact is not clear.
-            && !doNotCapture()) {
-      await dispatchAnyAsync();
-    }
+   // See if we have a cache hit.  If yes, use the object as-is.
+   let entry = context.cache.get(obj)!;
+   if (entry) {
+     // Even though we've already serialized out this object or function, it might be the case
+     // that we serialized out a different set of properties than the current set
+     // we're being asked to serialize.  So we have to make sure that all these props
+     // are actually serialized. We also might have found that a method was invoked/constructed when it was
+     // previously not.
+     if (
+       entry.object &&
+       // re-run the do not capture logic to 1) skip if necessary 2) rewrite if necessary
+       // FIXME: do not capture shouldn't mutate... impact is not clear.
+       !doNotCapture()
+     ) {
+       await dispatchAnyAsync();
+     }
 
-    return entry;
-  }
+     return entry;
+   }
 
-  if (obj instanceof Function && hasTrueBooleanMember(obj, 'doNotCapture')) {
-    // If we get a function we're not supposed to capture, then actually just serialize
-    // out a function that will throw at runtime so the user can understand the problem
-    // better.
-    const funcName = obj.name || 'anonymous';
-    const funcCode = getTrimmedFunctionCode(obj);
+   if (obj instanceof Function && hasTrueBooleanMember(obj, "doNotCapture")) {
+     // If we get a function we're not supposed to capture, then actually just serialize
+     // out a function that will throw at runtime so the user can understand the problem
+     // better.
+     const funcName = obj.name || "anonymous";
+     const funcCode = getTrimmedFunctionCode(obj);
 
-    const message =
-            `Function '${funcName}' cannot be called at runtime. ` +
-            `It can only be used at deployment time.\n\n${funcCode}`;
-    const errorFunc = () => { throw new Error(message); };
+     const message =
+       `Function '${funcName}' cannot be called at runtime. ` +
+       `It can only be used at deployment time.\n\n${funcCode}`;
+     const errorFunc = () => {
+       throw new Error(message);
+     };
 
-    obj = errorFunc;
-  }
+     obj = errorFunc;
+   }
 
-  // We may be processing recursive objects.  Because of that, we preemptively put a placeholder
-  // entry in the cache.  That way, if we encounter this obj again while recursing we can just
-  // return that placeholder.
-  entry = {};
-  context.cache.set(obj, entry);
-  await dispatchAnyAsync();
-  return entry;
+   // We may be processing recursive objects.  Because of that, we preemptively put a placeholder
+   // entry in the cache.  That way, if we encounter this obj again while recursing we can just
+   // return that placeholder.
+   entry = {};
+   context.cache.set(obj, entry);
+   await dispatchAnyAsync();
+   return entry;
 
-  function doNotCapture(): boolean | any {
-    const val = serialize(obj);
-    if (!val) {
-      // caller explicitly does not want us to capture this value.
-      return true;
-    } else if (typeof val !== 'boolean') {
-      // allow the replacement of the object
-      obj = val;
-    }
+   function doNotCapture(): boolean | any {
+     const val = serialize(obj);
+     if (!val) {
+       // caller explicitly does not want us to capture this value.
+       return true;
+     } else if (typeof val !== "boolean") {
+       // allow the replacement of the object
+       obj = val;
+     }
 
-    if (hasTrueBooleanMember(obj, 'doNotCapture')) {
-      // object has set itself as something that should not be captured.
-      return true;
-    }
+     if (hasTrueBooleanMember(obj, "doNotCapture")) {
+       // object has set itself as something that should not be captured.
+       return true;
+     }
 
-    if (obj instanceof Function &&
-            isDerivedNoCaptureConstructor(obj)) {
+     if (obj instanceof Function && isDerivedNoCaptureConstructor(obj)) {
+       // this was a constructor that derived from something that should not be captured.
+       return true;
+     }
 
-      // this was a constructor that derived from something that should not be captured.
-      return true;
-    }
+     return false;
+   }
 
-    return false;
-  }
+   async function dispatchAnyAsync(): Promise<void> {
+     if (doNotCapture()) {
+       // We do not want to capture this object.  Explicit set .json to undefined so
+       // that we will see that the property is set and we will simply roundtrip this
+       // as the 'undefined value.
+       entry.json = undefined;
+       return;
+     }
 
-  async function dispatchAnyAsync(): Promise<void> {
-    if (doNotCapture()) {
-      // We do not want to capture this object.  Explicit set .json to undefined so
-      // that we will see that the property is set and we will simply roundtrip this
-      // as the 'undefined value.
-      entry.json = undefined;
-      return;
-    }
+     // doNotCapture may update the object
+     const typeofObj: string = typeof obj;
 
-    // doNotCapture may update the object
-    const typeofObj: string = typeof obj;
+     if (
+       obj === undefined ||
+       obj === null ||
+       typeofObj === "boolean" ||
+       typeofObj === "string"
+     ) {
+       // Serialize primitives as-is.
+       entry.json = obj;
+       return;
+     } else if (typeofObj === "bigint") {
+       entry.expr = `${obj}n`;
+       return;
+     } else if (obj instanceof RegExp) {
+       entry.regexp = obj;
+       return;
+     }
 
-    if (obj === undefined ||
-            obj === null ||
-            typeofObj === 'boolean' ||
-            typeofObj === 'string') {
+     const normalizedModuleName = await findNormalizedModuleNameAsync(obj);
+     if (normalizedModuleName) {
+       await captureModuleAsync(normalizedModuleName);
+     } else if (obj instanceof Function) {
+       // if not invoked, let the property be treated like an object
+       let serializeAll = true;
 
-      // Serialize primitives as-is.
-      entry.json = obj;
-      return;
-    } else if (typeofObj === 'bigint') {
-      entry.expr = `${obj}n`;
-      return;
-    } else if (obj instanceof RegExp) {
-      entry.regexp = obj;
-      return;
-    }
+       if (
+         typeof isInvoked === "boolean" &&
+         !isInvoked &&
+         capturedObjectProperties &&
+         capturedObjectProperties.length > 0
+       ) {
+         entry.object = entry.object || { env: new Map() };
+         serializeAll = await serializeSomeObjectPropertiesAsync(
+           entry.object,
+           capturedObjectProperties
+         );
+       }
+       if (serializeAll) {
+         // Serialize functions recursively, and store them in a closure property.
+         entry.function = await analyzeFunctionInfoAsync(
+           obj,
+           context,
+           serialize,
+           logInfo
+         );
+       }
+     } else if (obj instanceof Promise) {
+       const val = await obj;
+       entry.promise = await getOrCreateEntryAsync(
+         val,
+         context,
+         serialize,
+         logInfo
+       );
+     } else if (obj instanceof Array) {
+       // Recursively serialize elements of an array. Note: we use getOwnPropertyNames as the
+       // array may be sparse and we want to properly respect that when serializing.
+       entry.array = [];
+       for (const descriptor of await getOwnPropertyDescriptors(obj)) {
+         if (descriptor.name !== undefined && descriptor.name !== "length") {
+           entry.array[<any>descriptor.name] = await getOrCreateEntryAsync(
+             await getOwnPropertyAsync(obj, descriptor),
+             context,
+             serialize,
+             logInfo
+           );
+         }
+       }
 
-    const normalizedModuleName = await findNormalizedModuleNameAsync(obj);
-    if (normalizedModuleName) {
-      await captureModuleAsync(normalizedModuleName);
-    } 
-    else if (obj instanceof Function) {
-      // if not invoked, let the property be treated like an object
-      let serializeAll = true; 
-      
-      if (
-        !isInvoked &&
-        capturedObjectProperties &&
-        capturedObjectProperties.length > 0
-      ) {
-        entry.object = entry.object || { env: new Map() };
-        serializeAll = await serializeSomeObjectPropertiesAsync(
-          entry.object,
-          capturedObjectProperties
-        );
-      }
-      if(serializeAll) {
-        // Serialize functions recursively, and store them in a closure property.
-        entry.function = await analyzeFunctionInfoAsync(obj, context, serialize, logInfo);
-      }
-    } 
-    else if (obj instanceof Promise) {
-      const val = await obj;
-      entry.promise = await getOrCreateEntryAsync(val, undefined, context, serialize, logInfo);
-    } else if (obj instanceof Array) {
-      // Recursively serialize elements of an array. Note: we use getOwnPropertyNames as the
-      // array may be sparse and we want to properly respect that when serializing.
-      entry.array = [];
-      for (const descriptor of await getOwnPropertyDescriptors(obj)) {
-        if (descriptor.name !== undefined &&
-                    descriptor.name !== 'length') {
+       // TODO(cyrusn): It feels weird that we're not examining any other descriptors of an
+       // array.  For example, if someone put on a property with a symbolic name, we'd lose
+       // that here. Unlikely, but something we may need to handle in the future.
+     } else if (Object.prototype.toString.call(obj) === "[object Arguments]") {
+       // From: https://stackoverflow.com/questions/7656280/how-do-i-check-whether-an-object-is-an-arguments-object-in-javascript
+       entry.array = [];
+       for (const elem of obj) {
+         entry.array.push(
+           await getOrCreateEntryAsync(
+             elem,
+             context,
+             serialize,
+             logInfo
+           )
+         );
+       }
+     } else {
+       // For all other objects, serialize out the properties we've been asked to serialize
+       // out.
+       await serializeObjectAsync();
+     }
+   }
 
-          entry.array[<any>descriptor.name] = await getOrCreateEntryAsync(
-            await getOwnPropertyAsync(obj, descriptor), undefined, context, serialize, logInfo);
-        }
-      }
+   async function serializeObjectAsync() {
+     // Serialize the set of property names asked for.  If we discover that any of them
+     // use this/super, then go and reserialize all the properties.
+     const serializeAll = await serializeObjectWorkerAsync(
+       capturedObjectProperties || []
+     );
+     if (serializeAll) {
+       await serializeObjectWorkerAsync([]);
+     }
+   }
 
-      // TODO(cyrusn): It feels weird that we're not examining any other descriptors of an
-      // array.  For example, if someone put on a property with a symbolic name, we'd lose
-      // that here. Unlikely, but something we may need to handle in the future.
-    } else if (Object.prototype.toString.call(obj) === '[object Arguments]') {
-      // From: https://stackoverflow.com/questions/7656280/how-do-i-check-whether-an-object-is-an-arguments-object-in-javascript
-      entry.array = [];
-      for (const elem of obj) {
-        entry.array.push(await getOrCreateEntryAsync(elem, undefined, context, serialize, logInfo));
-      }
-    } else {
-      // For all other objects, serialize out the properties we've been asked to serialize
-      // out.
-      await serializeObjectAsync();
-    }
-  }
+   // Returns 'true' if the caller (serializeObjectAsync) should call this again, but without any
+   // property filtering.
+   async function serializeObjectWorkerAsync(
+     localCapturedPropertyChains: CapturedPropertyChain[]
+   ): Promise<boolean> {
+     entry.object = entry.object || { env: new Map() };
 
-  async function serializeObjectAsync() {
-    // Serialize the set of property names asked for.  If we discover that any of them
-    // use this/super, then go and reserialize all the properties.
-    const serializeAll = await serializeObjectWorkerAsync(capturedObjectProperties || []);
-    if (serializeAll) {
-      await serializeObjectWorkerAsync([]);
-    }
-  }
+     if (localCapturedPropertyChains.length === 0) {
+       await serializeAllObjectPropertiesAsync(entry.object);
+       return false;
+     } else {
+       return serializeSomeObjectPropertiesAsync(
+         entry.object,
+         localCapturedPropertyChains
+       );
+     }
+   }
 
-  // Returns 'true' if the caller (serializeObjectAsync) should call this again, but without any
-  // property filtering.
-  async function serializeObjectWorkerAsync(localCapturedPropertyChains: CapturedPropertyChain[]): Promise<boolean> {
-    entry.object = entry.object || { env: new Map() };
+   // Serializes out all the properties of this object.  Used when we can't prove that
+   // only a subset of properties are used on this object.
+   async function serializeAllObjectPropertiesAsync(object: ObjectInfo) {
+     // we wanted to capture everything (including the prototype chain)
+     const descriptors = await getOwnPropertyDescriptors(obj);
 
-    if (localCapturedPropertyChains.length === 0) {
-      await serializeAllObjectPropertiesAsync(entry.object);
-      return false;
-    } else {
-      return serializeSomeObjectPropertiesAsync(entry.object, localCapturedPropertyChains);
-    }
-  }
+     for (const descriptor of descriptors) {
+       const keyEntry = await getOrCreateEntryAsync(
+         getNameOrSymbol(descriptor),
+         context,
+         serialize,
+         logInfo
+       );
 
-  // Serializes out all the properties of this object.  Used when we can't prove that
-  // only a subset of properties are used on this object.
-  async function serializeAllObjectPropertiesAsync(object: ObjectInfo) {
-    // we wanted to capture everything (including the prototype chain)
-    const descriptors = await getOwnPropertyDescriptors(obj);
+       // We're about to recurse inside this object.  In order to prevent infinite loops, put a
+       // dummy entry in the environment map.  That way, if we hit this object again while
+       // recursing we won't try to generate this property.
+       //
+       // Note: we only stop recursing if we hit exactly our sentinel key (i.e. we're self
+       // recursive).  We *do* want to recurse through the object again if we see it through
+       // non-recursive paths.  That's because we might be hitting this object through one
+       // prop-name-path, but we created it the first time through another prop-name path.
+       //
+       // By processing the object again, we will add the different members we need.
+       if (object.env.has(keyEntry) && object.env.get(keyEntry) === undefined) {
+         continue;
+       }
+       object.env.set(keyEntry, <any>undefined);
 
-    for (const descriptor of descriptors) {
-      const keyEntry = await getOrCreateEntryAsync(getNameOrSymbol(descriptor), undefined, context, serialize, logInfo);
+       const propertyInfo = await createPropertyInfoAsync(
+         descriptor,
+         context,
+         serialize,
+         logInfo
+       );
+       const prop = await getOwnPropertyAsync(obj, descriptor);
+       const valEntry = await getOrCreateEntryAsync(
+         prop,
+         context,
+         serialize,
+         logInfo
+       );
 
-      // We're about to recurse inside this object.  In order to prevent infinite loops, put a
-      // dummy entry in the environment map.  That way, if we hit this object again while
-      // recursing we won't try to generate this property.
-      //
-      // Note: we only stop recursing if we hit exactly our sentinel key (i.e. we're self
-      // recursive).  We *do* want to recurse through the object again if we see it through
-      // non-recursive paths.  That's because we might be hitting this object through one
-      // prop-name-path, but we created it the first time through another prop-name path.
-      //
-      // By processing the object again, we will add the different members we need.
-      if (object.env.has(keyEntry) && object.env.get(keyEntry) === undefined) {
-        continue;
-      }
-      object.env.set(keyEntry, <any>undefined);
+       // Now, replace the dummy entry with the actual one we want.
+       object.env.set(keyEntry, { info: propertyInfo, entry: valEntry });
+     }
 
-      const propertyInfo = await createPropertyInfoAsync(descriptor, context, serialize, logInfo);
-      const prop = await getOwnPropertyAsync(obj, descriptor);
-      const valEntry = await getOrCreateEntryAsync(
-        prop, undefined, context, serialize, logInfo);
+     // If the object's __proto__ is not Object.prototype, then we have to capture what it
+     // actually is.  On the other end, we'll use Object.create(deserializedProto) to set
+     // things up properly.
+     //
+     // We don't need to capture the prototype if the user is not capturing 'this' either.
+     if (!object.proto && !object.sym) {
+       const proto = Object.getPrototypeOf(obj);
+       // https://github.com/pulumi/pulumi/issues/6229
+       if (proto === Symbol.prototype) {
+         object.sym = obj;
+       } else if (proto !== Object.prototype) {
+         object.proto = await getOrCreateEntryAsync(
+           proto,
+           context,
+           serialize,
+           logInfo
+         );
+       }
+     }
+   }
 
-      // Now, replace the dummy entry with the actual one we want.
-      object.env.set(keyEntry, { info: propertyInfo, entry: valEntry });
-    }
+   // Serializes out only the subset of properties of this object that we have seen used
+   // and have recorded in localCapturedPropertyChains
+   async function serializeSomeObjectPropertiesAsync(
+     object: ObjectInfo,
+     localCapturedPropertyChains: CapturedPropertyChain[]
+   ): Promise<boolean> {
+     // validate our invariants.
+     for (const chain of localCapturedPropertyChains) {
+       if (chain.infos.length === 0) {
+         throw new Error("Expected a non-empty chain.");
+       }
+     }
 
-    // If the object's __proto__ is not Object.prototype, then we have to capture what it
-    // actually is.  On the other end, we'll use Object.create(deserializedProto) to set
-    // things up properly.
-    //
-    // We don't need to capture the prototype if the user is not capturing 'this' either.
-    if (!object.proto && !object.sym) {
-      const proto = Object.getPrototypeOf(obj);
-      // https://github.com/pulumi/pulumi/issues/6229
-      if (proto === Symbol.prototype) {
-        object.sym = obj;
-      } else if (proto !== Object.prototype) {
-        object.proto = await getOrCreateEntryAsync(
-          proto, undefined, context, serialize, logInfo);
-      }
-    }
-  }
+     // we only want to capture a subset of properties.  We can do this as long those
+     // properties don't somehow end up involving referencing "this" in an 'invoked'
+     // capacity (in which case we need to completely realize the object.
+     //
+     // this is slightly tricky as it's not obvious if a property is a getter/setter
+     // and this is implicitly invoked just by access it.
 
-  // Serializes out only the subset of properties of this object that we have seen used
-  // and have recorded in localCapturedPropertyChains
-  async function serializeSomeObjectPropertiesAsync(
-    object: ObjectInfo, localCapturedPropertyChains: CapturedPropertyChain[]): Promise<boolean> {
+     // Find the list of property names *directly* accessed off this object.
+     const propChainFirstNames = new Set(
+       localCapturedPropertyChains.map((chain) => chain.infos[0].name)
+     );
 
-    // validate our invariants.
-    for (const chain of localCapturedPropertyChains) {
-      if (chain.infos.length === 0) {
-        throw new Error('Expected a non-empty chain.');
-      }
-    }
+     // Now process each top level property name accessed off of this object in turn. For
+     // example, if we say "foo.bar.baz", "foo.bar.quux", "foo.ztesch", this would "bar" and
+     // "ztesch".
+     for (const propName of propChainFirstNames) {
+       // Get the named chains starting with this prop name.  In the above example, if
+       // this was "bar", then we would get "[bar, baz]" and [bar, quux].
+       const propChains = localCapturedPropertyChains.filter(
+         (chain) => chain.infos[0].name === propName
+       );
 
-    // we only want to capture a subset of properties.  We can do this as long those
-    // properties don't somehow end up involving referencing "this" in an 'invoked'
-    // capacity (in which case we need to completely realize the object.
-    //
-    // this is slightly tricky as it's not obvious if a property is a getter/setter
-    // and this is implicitly invoked just by access it.
+       // Now, make an entry just for this name.
+       const keyEntry = await getOrCreateNameEntryAsync(
+         propName,
+         undefined,
+         context,
+         serialize,
+         logInfo
+       );
 
-    // Find the list of property names *directly* accessed off this object.
-    const propChainFirstNames = new Set(localCapturedPropertyChains.map(
-      chain => chain.infos[0].name));
+       // We're about to recurse inside this object.  In order to prevent infinite loops, put a
+       // dummy entry in the environment map.  That way, if we hit this object again while
+       // recursing we won't try to generate this property.
+       //
+       // Note: we only stop recursing if we hit exactly our sentinel key (i.e. we're self
+       // recursive).  We *do* want to recurse through the object again if we see it through
+       // non-recursive paths.  That's because we might be hitting this object through one
+       // prop-name-path, but we created it the first time through another prop-name path.
+       //
+       // By processing the object again, we will add the different members we need.
+       if (object.env.has(keyEntry) && object.env.get(keyEntry) === undefined) {
+         continue;
+       }
+       object.env.set(keyEntry, <any>undefined);
 
-    // Now process each top level property name accessed off of this object in turn. For
-    // example, if we say "foo.bar.baz", "foo.bar.quux", "foo.ztesch", this would "bar" and
-    // "ztesch".
-    for (const propName of propChainFirstNames) {
-      // Get the named chains starting with this prop name.  In the above example, if
-      // this was "bar", then we would get "[bar, baz]" and [bar, quux].
-      const propChains = localCapturedPropertyChains.filter(chain => chain.infos[0].name === propName);
+       const objPropValue = await getPropertyAsync(obj, propName);
+       const propertyInfo = await getPropertyInfoAsync(obj, propName);
+       if (!propertyInfo) {
+         if (objPropValue !== undefined) {
+           throw new Error(
+             "Could not find property info for real property on object: " +
+               propName
+           );
+         }
 
-      // Now, make an entry just for this name.
-      const keyEntry = await getOrCreateNameEntryAsync(propName, undefined, context, serialize, logInfo);
+         // User code referenced a property not actually on the object at all.
+         // So to properly represent that, we don't place any information about
+         // this property on the object.
+         object.env.delete(keyEntry);
+       } else {
+         // Determine what chained property names we're accessing off of this sub-property.
+         // if we have no sub property name chain, then indicate that with an empty array
+         // so that we capture the entire object.
+         //
+         // i.e.: if we started with a.b.c.d, and we've finally gotten to the point where
+         // we're serializing out the 'd' property, then we need to serialize it out fully
+         // since there are no more accesses off of it.
+         let nestedPropChains = propChains.map((chain) => ({
+           infos: chain.infos.slice(1),
+         }));
+         if (nestedPropChains.some((chain) => chain.infos.length === 0)) {
+           nestedPropChains = [];
+         }
+         const anyInvoked = propChains.some((x) => x.infos[0].invoked);
 
-      // We're about to recurse inside this object.  In order to prevent infinite loops, put a
-      // dummy entry in the environment map.  That way, if we hit this object again while
-      // recursing we won't try to generate this property.
-      //
-      // Note: we only stop recursing if we hit exactly our sentinel key (i.e. we're self
-      // recursive).  We *do* want to recurse through the object again if we see it through
-      // non-recursive paths.  That's because we might be hitting this object through one
-      // prop-name-path, but we created it the first time through another prop-name path.
-      //
-      // By processing the object again, we will add the different members we need.
-      if (object.env.has(keyEntry) && object.env.get(keyEntry) === undefined) {
-        continue;
-      }
-      object.env.set(keyEntry, <any>undefined);
+         // Note: objPropValue can be undefined here.  That's the case where the
+         // object does have the property, but the property is just set to the
+         // undefined value.
+         const valEntry = await getOrCreateEntryAsync(
+           objPropValue,
+           nestedPropChains,
+           anyInvoked,
+           context,
+           serialize,
+           logInfo
+         );
 
-      const objPropValue = await getPropertyAsync(obj, propName);
-      const propertyInfo = await getPropertyInfoAsync(obj, propName);
-      if (!propertyInfo) {
-        if (objPropValue !== undefined) {
-          throw new Error('Could not find property info for real property on object: ' + propName);
-        }
+         const infos = propChains.map((chain) => chain.infos[0]);
+         if (propInfoUsesNonLexicalThis(infos, propertyInfo, valEntry)) {
+           // the referenced function captured 'this'.  Have to serialize out
+           // this entire object.  Undo the work we did to just serialize out a
+           // few properties.
+           object.env.clear();
 
-        // User code referenced a property not actually on the object at all.
-        // So to properly represent that, we don't place any information about
-        // this property on the object.
-        object.env.delete(keyEntry);
-      } else {
-        // Determine what chained property names we're accessing off of this sub-property.
-        // if we have no sub property name chain, then indicate that with an empty array
-        // so that we capture the entire object.
-        //
-        // i.e.: if we started with a.b.c.d, and we've finally gotten to the point where
-        // we're serializing out the 'd' property, then we need to serialize it out fully
-        // since there are no more accesses off of it.
-        let nestedPropChains = propChains.map(chain => ({ infos: chain.infos.slice(1) }));
-        if (nestedPropChains.some(chain => chain.infos.length === 0)) {
-          nestedPropChains = [];
-        }
+           // Signal our caller to serialize the entire object.
+           return true;
+         }
 
-        // Note: objPropValue can be undefined here.  That's the case where the
-        // object does have the property, but the property is just set to the
-        // undefined value.
-        const valEntry = await getOrCreateEntryAsync(
-          objPropValue, nestedPropChains, context, serialize, logInfo);
+         // Now, replace the dummy entry with the actual one we want.
+         object.env.set(keyEntry, { info: propertyInfo, entry: valEntry });
+       }
+     }
 
-        const infos = propChains.map(chain => chain.infos[0]);
-        if (propInfoUsesNonLexicalThis(infos, propertyInfo, valEntry)) {
-          // the referenced function captured 'this'.  Have to serialize out
-          // this entire object.  Undo the work we did to just serialize out a
-          // few properties.
-          object.env.clear();
+     return false;
+   }
 
-          // Signal our caller to serialize the entire object.
-          return true;
-        }
+   function propInfoUsesNonLexicalThis(
+     capturedInfos: CapturedPropertyInfo[],
+     propertyInfo: PropertyInfo | undefined,
+     valEntry: Entry
+   ) {
+     if (capturedInfos.some((info) => info.invoked)) {
+       // If the property was invoked, then we have to check if that property ends
+       // up using this/super.  if so, then we actually have to serialize out this
+       // object entirely.
+       if (usesNonLexicalThis(valEntry)) {
+         return true;
+       }
+     }
 
-        // Now, replace the dummy entry with the actual one we want.
-        object.env.set(keyEntry, { info: propertyInfo, entry: valEntry });
-      }
-    }
+     // if we're accessing a getter/setter, and that getter/setter uses
+     // 'this', then we need to serialize out this object entirely.
 
-    return false;
-  }
+     if (
+       usesNonLexicalThis(propertyInfo ? propertyInfo.get : undefined) ||
+       usesNonLexicalThis(propertyInfo ? propertyInfo.set : undefined)
+     ) {
+       return true;
+     }
 
-  function propInfoUsesNonLexicalThis(
-    capturedInfos: CapturedPropertyInfo[], propertyInfo: PropertyInfo | undefined, valEntry: Entry) {
-    if (capturedInfos.some(info => info.invoked)) {
-      // If the property was invoked, then we have to check if that property ends
-      // up using this/super.  if so, then we actually have to serialize out this
-      // object entirely.
-      if (usesNonLexicalThis(valEntry)) {
-        return true;
-      }
-    }
+     return false;
+   }
 
-    // if we're accessing a getter/setter, and that getter/setter uses
-    // 'this', then we need to serialize out this object entirely.
+   async function getPropertyInfoAsync(
+     on: any,
+     key: string | symbol
+   ): Promise<PropertyInfo | undefined> {
+     for (let current = on; current; current = Object.getPrototypeOf(current)) {
+       const desc = Object.getOwnPropertyDescriptor(current, key);
+       if (desc) {
+         const closurePropDescriptor = createClosurePropertyDescriptor(
+           key,
+           desc
+         );
+         const propertyInfo = await createPropertyInfoAsync(
+           closurePropDescriptor,
+           context,
+           serialize,
+           logInfo
+         );
+         return propertyInfo;
+       }
+     }
 
-    if (usesNonLexicalThis(propertyInfo ? propertyInfo.get : undefined) ||
-            usesNonLexicalThis(propertyInfo ? propertyInfo.set : undefined)) {
+     return undefined;
+   }
 
-      return true;
-    }
+   function usesNonLexicalThis(localEntry: Entry | undefined) {
+     return (
+       localEntry &&
+       localEntry.function &&
+       localEntry.function.usesNonLexicalThis
+     );
+   }
 
-    return false;
-  }
+   async function captureModuleAsync(
+     normalizedModuleName: string
+   ): Promise<void> {
+     // Splitting on "/" is safe to do as this module name is already in a normalized form.
+     const moduleParts = normalizedModuleName.split("/");
 
-  async function getPropertyInfoAsync(on: any, key: string | symbol): Promise<PropertyInfo | undefined> {
-    for (let current = on; current; current = Object.getPrototypeOf(current)) {
-      const desc = Object.getOwnPropertyDescriptor(current, key);
-      if (desc) {
-        const closurePropDescriptor = createClosurePropertyDescriptor(key, desc);
-        const propertyInfo = await createPropertyInfoAsync(closurePropDescriptor, context, serialize, logInfo);
-        return propertyInfo;
-      }
-    }
+     const nodeModulesSegment = "node_modules";
+     const nodeModulesSegmentIndex = moduleParts.findIndex(
+       (v) => v === nodeModulesSegment
+     );
+     const isInNodeModules = nodeModulesSegmentIndex >= 0;
 
-    return undefined;
-  }
+     const isLocalModule =
+       normalizedModuleName.startsWith(".") && !isInNodeModules;
 
-  function usesNonLexicalThis(localEntry: Entry | undefined) {
-    return localEntry && localEntry.function && localEntry.function.usesNonLexicalThis;
-  }
-
-  async function captureModuleAsync(normalizedModuleName: string): Promise<void> {
-    // Splitting on "/" is safe to do as this module name is already in a normalized form.
-    const moduleParts = normalizedModuleName.split('/');
-
-    const nodeModulesSegment = 'node_modules';
-    const nodeModulesSegmentIndex = moduleParts.findIndex(v => v === nodeModulesSegment);
-    const isInNodeModules = nodeModulesSegmentIndex >= 0;
-
-    const isLocalModule = normalizedModuleName.startsWith('.') && !isInNodeModules;
-
-    if (hasTrueBooleanMember(obj, 'deploymentOnlyModule') || isLocalModule) {
-      // Try to serialize deployment-time and local-modules by-value.
-      //
-      // A deployment-only modules can't ever be successfully 'required' on the 'inside'. But
-      // parts of it may be serializable on the inside (i.e. pulumi.Config).  So just try to
-      // capture this as a value.  If it fails, we will give the user a good message.
-      // Otherwise, it may succeed if the user is only using a small part of the API that is
-      // serializable (like pulumi.Config)
-      //
-      // Or this is a reference to a local module (i.e. starts with '.', but isn't in
-      // /node_modules/ somewhere). Always capture the local module as a value.  We do this
-      // because capturing as a reference (i.e. 'require(...)') has the following problems:
-      //
-      // 1. 'require(...)' will not work at run-time, because the user's code will not be
-      //    serialized in a way that can actually be require'd (i.e. it is not ) serialized
-      //    into any sort of appropriate file/folder structure for those 'require's to work.
-      //
-      // 2. if we stop here and capture as a reference, then we won't actually see and walk
-      //    the code that exists in those local modules (direct or transitive). So we won't
-      //    actually generate the serialized code for the functions or values in that module.
-      //    This will also lead to code that simply will not work at run-time.
-      await serializeObjectAsync();
-    } else {
-      // If the path goes into node_modules, strip off the node_modules part. This will help
-      // ensure that lookup of those modules will work on the cloud-side even if the module
-      // isn't in a relative node_modules directory.  For example, this happens with aws-sdk.
-      // It ends up actually being in /var/runtime/node_modules inside aws lambda.
-      //
-      // This also helps ensure that modules that are 'yarn link'ed are found properly. The
-      // module path we have may be on some non-local path due to the linking, however this
-      // will ensure that the module-name we load is a simple path that can be found off the
-      // node_modules that we actually upload with our serialized functions.
-      entry.module = isInNodeModules
-        ? getModuleFromPath(upath.join(...moduleParts.slice(nodeModulesSegmentIndex + 1)))
-        : normalizedModuleName;
-    }
-  }
-}
+     if (hasTrueBooleanMember(obj, "deploymentOnlyModule") || isLocalModule) {
+       // Try to serialize deployment-time and local-modules by-value.
+       //
+       // A deployment-only modules can't ever be successfully 'required' on the 'inside'. But
+       // parts of it may be serializable on the inside (i.e. pulumi.Config).  So just try to
+       // capture this as a value.  If it fails, we will give the user a good message.
+       // Otherwise, it may succeed if the user is only using a small part of the API that is
+       // serializable (like pulumi.Config)
+       //
+       // Or this is a reference to a local module (i.e. starts with '.', but isn't in
+       // /node_modules/ somewhere). Always capture the local module as a value.  We do this
+       // because capturing as a reference (i.e. 'require(...)') has the following problems:
+       //
+       // 1. 'require(...)' will not work at run-time, because the user's code will not be
+       //    serialized in a way that can actually be require'd (i.e. it is not ) serialized
+       //    into any sort of appropriate file/folder structure for those 'require's to work.
+       //
+       // 2. if we stop here and capture as a reference, then we won't actually see and walk
+       //    the code that exists in those local modules (direct or transitive). So we won't
+       //    actually generate the serialized code for the functions or values in that module.
+       //    This will also lead to code that simply will not work at run-time.
+       await serializeObjectAsync();
+     } else {
+       // If the path goes into node_modules, strip off the node_modules part. This will help
+       // ensure that lookup of those modules will work on the cloud-side even if the module
+       // isn't in a relative node_modules directory.  For example, this happens with aws-sdk.
+       // It ends up actually being in /var/runtime/node_modules inside aws lambda.
+       //
+       // This also helps ensure that modules that are 'yarn link'ed are found properly. The
+       // module path we have may be on some non-local path due to the linking, however this
+       // will ensure that the module-name we load is a simple path that can be found off the
+       // node_modules that we actually upload with our serialized functions.
+       entry.module = isInNodeModules
+         ? getModuleFromPath(
+             upath.join(...moduleParts.slice(nodeModulesSegmentIndex + 1))
+           )
+         : normalizedModuleName;
+     }
+   }
+ }
 
 // Is this a constructor derived from a noCapture constructor.  if so, we don't want to
 // emit it.  We would be unable to actually hook up the "super()" call as one of the base
