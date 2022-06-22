@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import * as upath from 'upath';
+import * as upath from "upath";
 
-type Exports = string | {[key: string]: SubExports};
-type SubExports = string | {[key: string]: SubExports} | null;
+type Exports = string | { [key: string]: SubExports };
+type SubExports = string | { [key: string]: SubExports } | null;
 
 type PackageDefinition = {
   name: string;
@@ -46,7 +46,10 @@ function getPackageDefinition(path: string): PackageDefinition | undefined {
     if (last === undefined || lastFullPath === undefined) {
       throw new Error(`no package.json found for ${path}`);
     }
-    const packageDefinitionAbsPath = lastFullPath.slice(0, lastFullPath.indexOf(last)) + last + '/package.json';
+    const packageDefinitionAbsPath =
+      lastFullPath.slice(0, lastFullPath.indexOf(last)) +
+      last +
+      "/package.json";
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     return require(packageDefinitionAbsPath);
   } catch (err) {
@@ -55,20 +58,23 @@ function getPackageDefinition(path: string): PackageDefinition | undefined {
 }
 
 // a module's implementations are leaves of the document tree.
-function getAllLeafStrings(objectOrPath: SubExports, opts?: RequireOpts): string[] {
+function getAllLeafStrings(
+  objectOrPath: SubExports,
+  opts?: RequireOpts
+): string[] {
   if (objectOrPath === null) {
     // module blacklisted return no implementations
     return [];
   }
-  if (typeof objectOrPath === 'string') {
+  if (typeof objectOrPath === "string") {
     return [objectOrPath];
   }
   const strings: string[] = [];
   for (const [key, value] of Object.entries(objectOrPath)) {
-    if (opts && !opts.isRequire && key === 'require') {
+    if (opts && !opts.isRequire && key === "require") {
       continue;
     }
-    if (opts && !opts.isImport && key === 'import') {
+    if (opts && !opts.isImport && key === "import") {
       continue;
     }
     const leaves = getAllLeafStrings(value);
@@ -79,8 +85,8 @@ function getAllLeafStrings(objectOrPath: SubExports, opts?: RequireOpts): string
 
 // from https://github.com/nodejs/node/blob/b191e66ddf/lib/internal/modules/esm/resolve.js#L686
 function patternKeyCompare(a: string, b: string) {
-  const aPatternIndex = a.indexOf('*');
-  const bPatternIndex = b.indexOf('*');
+  const aPatternIndex = a.indexOf("*");
+  const bPatternIndex = b.indexOf("*");
   const baseLenA = aPatternIndex === -1 ? a.length : aPatternIndex + 1;
   const baseLenB = bPatternIndex === -1 ? b.length : bPatternIndex + 1;
   if (baseLenA > baseLenB) {
@@ -105,38 +111,44 @@ function patternKeyCompare(a: string, b: string) {
 }
 
 type SrcPrefix = string;
-type Rule = [SrcPrefix, {
-  modPrefix: string;
-  modSuffix: string;
-  srcSuffix: string;
-}];
+type Rule = [
+  SrcPrefix,
+  {
+    modPrefix: string;
+    modSuffix: string;
+    srcSuffix: string;
+  }
+];
 
 function makeRule(srcPattern: string, modPattern: string): Rule {
-  const srcSplit = srcPattern.split('*'); // NodeJS doesn't error out when provided multiple '*'.
-  const modSplit = modPattern.split('*');
+  const srcSplit = srcPattern.split("*"); // NodeJS doesn't error out when provided multiple '*'.
+  const modSplit = modPattern.split("*");
   if (srcSplit.length > 2 || modSplit.length > 2) {
     // there is undefined behavior on more than 1 "*"
     // see https://github.com/nodejs/node/blob/b191e66ddf/lib/internal/modules/esm/resolve.js#L664
-    throw new Error('multiple wildcards in single export target specification');
+    throw new Error("multiple wildcards in single export target specification");
   }
   const [srcPrefix, srcSuffix] = srcSplit;
   const [modPrefix, modSuffix] = modSplit;
-  return [srcPrefix, {
-    modPrefix,
-    modSuffix: (modSuffix || ''),
-    srcSuffix: (srcSuffix || ''),
-  }];
+  return [
+    srcPrefix,
+    {
+      modPrefix,
+      modSuffix: modSuffix || "",
+      srcSuffix: srcSuffix || "",
+    },
+  ];
 }
 
 class WildcardMap {
-  private map: {[srcPrefix: string]: string};
+  private map: { [srcPrefix: string]: string };
   private rules: Rule[];
   constructor(matches: [string, string[]][]) {
     this.map = {};
     const rules: Rule[] = [];
     for (const [match, srcPaths] of matches) {
       for (const srcPath of srcPaths) {
-        if (srcPath.includes('*')) {
+        if (srcPath.includes("*")) {
           // wildcard match
           rules.push(makeRule(srcPath, match));
           continue;
@@ -151,11 +163,17 @@ class WildcardMap {
       return this.map[srcName];
     }
     for (const [srcPrefix, srcRule] of this.rules) {
-      if (!srcName.startsWith(srcPrefix) || !srcName.endsWith(srcRule.srcSuffix)) {
+      if (
+        !srcName.startsWith(srcPrefix) ||
+        !srcName.endsWith(srcRule.srcSuffix)
+      ) {
         continue;
       }
 
-      const srcSubpath = srcName.slice(srcPrefix.length, srcName.length-srcRule.srcSuffix.length);
+      const srcSubpath = srcName.slice(
+        srcPrefix.length,
+        srcName.length - srcRule.srcSuffix.length
+      );
       const result = srcRule.modPrefix + srcSubpath + srcRule.modSuffix;
       return result;
     }
@@ -169,14 +187,14 @@ function isConditionalSugar(exports: Exports, name: string) {
   // details https://github.com/nodejs/node/blob/b191e66ddf/lib/internal/modules/esm/resolve.js#L593
   let isSugar = false;
   for (const key of Object.keys(exports)) {
-    if (isSugar && key.startsWith('.')) {
+    if (isSugar && key.startsWith(".")) {
       throw new Error(
         `${name}:package.json "exports" cannot contain some keys starting with "." and some not.` +
-                ' The exports object must either be an object of package subpath keys' +
-                ' or an object of main entry condition name keys only.',
+          " The exports object must either be an object of package subpath keys" +
+          " or an object of main entry condition name keys only."
       );
     }
-    if (!key.startsWith('.')) {
+    if (!key.startsWith(".")) {
       isSugar = true;
       continue;
     }
@@ -192,14 +210,14 @@ class ModuleMap {
 
     if (isConditionalSugar(exports, name)) {
       // the exports keys are not paths meaning it is an exports sugar we need to simplify
-      exports = { '.': exports };
+      exports = { ".": exports };
     }
 
     const rules: [string, string[]][] = [];
     for (const [modPath, objectOrPath] of Object.entries(exports)) {
       const modName: string = name + modPath.slice(1);
       const leaves = getAllLeafStrings(objectOrPath, opts);
-      rules.push([modName, leaves.map(leaf => name + leaf.slice(1))]);
+      rules.push([modName, leaves.map((leaf) => name + leaf.slice(1))]);
     }
     this.wildcardMap = new WildcardMap(rules);
   }
@@ -242,7 +260,11 @@ type RequireOpts = {
     For more details https://nodejs.org/api/esm.html#resolution-algorithm
 */
 
-export function getModuleFromPath(path: string, packageDefinition?: PackageDefinition, opts: RequireOpts={ isRequire: true }) {
+export function getModuleFromPath(
+  path: string,
+  packageDefinition?: PackageDefinition,
+  opts: RequireOpts = { isRequire: true }
+) {
   packageDefinition = packageDefinition || getPackageDefinition(path);
   if (packageDefinition === undefined) {
     return path;
@@ -250,11 +272,15 @@ export function getModuleFromPath(path: string, packageDefinition?: PackageDefin
   if (packageDefinition.exports === undefined) {
     return path;
   }
-  if (typeof packageDefinition.exports === 'string') {
+  if (typeof packageDefinition.exports === "string") {
     return packageDefinition.name;
   }
-  if (typeof packageDefinition.exports === 'object') {
-    const modMap = new ModuleMap(packageDefinition.name, packageDefinition.exports, opts);
+  if (typeof packageDefinition.exports === "object") {
+    const modMap = new ModuleMap(
+      packageDefinition.name,
+      packageDefinition.exports,
+      opts
+    );
     const modulePath = modMap.get(path);
     return modulePath;
   }

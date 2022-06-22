@@ -4467,7 +4467,9 @@ function __f0() {
   return (function() {
     with({ message: "Function 'b' cannot be called at runtime. It can only be used at deployment time.\\n\\nFunction code:\\n  () => console.log(\\"the actual function\\")\\n" }) {
 
-return () => { throw new Error(message); };
+return () => {
+                throw new Error(message);
+            };
 
     }
   }).apply(undefined, undefined).apply(this, arguments);
@@ -5676,8 +5678,8 @@ function __f1(__0) {
     with({  }) {
 
 return function /*constructor*/(name) {
-        if (name.endsWith(':config')) {
-            name = name.replace(/:config$/, '');
+        if (name.endsWith(":config")) {
+            name = name.replace(/:config$/, "");
         }
         this.name = name;
     };
@@ -5719,7 +5721,7 @@ function __f3(__0) {
     with({  }) {
 
 return function /*fullKey*/(key) {
-        return this.name + ':' + key;
+        return this.name + ":" + key;
     };
 
     }
@@ -5765,8 +5767,8 @@ function __f1(__0) {
     with({  }) {
 
 return function /*constructor*/(name) {
-        if (name.endsWith(':config')) {
-            name = name.replace(/:config$/, '');
+        if (name.endsWith(":config")) {
+            name = name.replace(/:config$/, "");
         }
         this.name = name;
     };
@@ -5808,7 +5810,7 @@ function __f3(__0) {
     with({  }) {
 
 return function /*fullKey*/(key) {
-        return this.name + ':' + key;
+        return this.name + ":" + key;
     };
 
     }

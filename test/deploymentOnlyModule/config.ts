@@ -15,7 +15,7 @@
 // Copy of real 'config.ts' file to ensure that if we capture somehting marked as
 // deployment-time that any code it captures (even through modules), should be captured by value.
 
-import { getConfig } from './runtimeConfig';
+import { getConfig } from "./runtimeConfig";
 
 /**
  * Config is a bag of related configuration state.  Each bag contains any number of configuration variables, indexed by
@@ -26,25 +26,25 @@ import { getConfig } from './runtimeConfig';
  */
 export class Config {
   /**
-     * name is the configuration bag's logical name and uniquely identifies it.  The default is the name of the current
-     * project.
-     */
+   * name is the configuration bag's logical name and uniquely identifies it.  The default is the name of the current
+   * project.
+   */
   public readonly name: string;
 
   constructor(name: string) {
-    if (name.endsWith(':config')) {
-      name = name.replace(/:config$/, '');
+    if (name.endsWith(":config")) {
+      name = name.replace(/:config$/, "");
     }
 
     this.name = name;
   }
 
   /**
-     * get loads an optional configuration value by its key, or undefined if it doesn't exist.
-     *
-     * @param key The key to lookup.
-     * @param opts An options bag to constrain legal values.
-     */
+   * get loads an optional configuration value by its key, or undefined if it doesn't exist.
+   *
+   * @param key The key to lookup.
+   * @param opts An options bag to constrain legal values.
+   */
   public get(key: string): string | undefined {
     const v = getConfig(this.fullKey(key));
     if (v === undefined) {
@@ -54,12 +54,11 @@ export class Config {
   }
 
   /**
-     * fullKey turns a simple configuration key into a fully resolved one, by prepending the bag's name.
-     *
-     * @param key The key to lookup.
-     */
+   * fullKey turns a simple configuration key into a fully resolved one, by prepending the bag's name.
+   *
+   * @param key The key to lookup.
+   */
   private fullKey(key: string): string {
-    return this.name + ':' + key;
+    return this.name + ":" + key;
   }
 }
-

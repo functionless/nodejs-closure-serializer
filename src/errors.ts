@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import * as utils from './utils';
+import * as utils from "./utils";
 
 /**
  * RunError can be used for terminating a program abruptly, but resulting in a clean exit rather
@@ -26,13 +26,13 @@ export class RunError extends Error {
    * multiple copies of the Pulumi SDK have been loaded into the same process.
    */
   public static isInstance(obj: any): obj is RunError {
-    return utils.isInstance<RunError>(obj, '__pulumiRunError');
+    return utils.isInstance<RunError>(obj, "__pulumiRunError");
   }
 
   /**
-     * A private field to help with RTTI that works in SxS scenarios.
-     * @internal
-     */
+   * A private field to help with RTTI that works in SxS scenarios.
+   * @internal
+   */
   // eslint-disable-next-line @typescript-eslint/naming-convention,no-underscore-dangle,id-blacklist,id-match
   public readonly __pulumiRunError: boolean = true;
 
@@ -49,17 +49,17 @@ export class RunError extends Error {
  */
 export class ResourceError extends Error {
   /**
-     * Returns true if the given object is an instance of a ResourceError.  This is designed to work even when
-     * multiple copies of the Pulumi SDK have been loaded into the same process.
-     */
+   * Returns true if the given object is an instance of a ResourceError.  This is designed to work even when
+   * multiple copies of the Pulumi SDK have been loaded into the same process.
+   */
   public static isInstance(obj: any): obj is ResourceError {
-    return utils.isInstance<ResourceError>(obj, '__pulumResourceError');
+    return utils.isInstance<ResourceError>(obj, "__pulumResourceError");
   }
 
   /**
-     * A private field to help with RTTI that works in SxS scenarios.
-     * @internal
-     */
+   * A private field to help with RTTI that works in SxS scenarios.
+   * @internal
+   */
   // eslint-disable-next-line @typescript-eslint/naming-convention, no-underscore-dangle, id-blacklist, id-match
   public readonly __pulumResourceError: boolean = true;
 
