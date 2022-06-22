@@ -642,7 +642,7 @@ async function analyzeFunctionInfoAsync(
         logInfo
       );
 
-      // try to only serialize out the pro  perties that were used by the user's code.
+      // try to only serialize out the properties that were used by the user's code.
       const serializedValue = await getOrCreateEntryAsync(
         value,
         properties,
@@ -1088,16 +1088,17 @@ async function getOrCreateEntryAsync(
     if (normalizedModuleName) {
       await captureModuleAsync(normalizedModuleName);
     } else if (obj instanceof Function) {
-      // if not invoked, let the property be treated like an object
       let serializeAll = true;
 
+      // if the function was not invoked, attempt to serialize the function like an object
+      // possibly only taking properties that were used (so far).
       if (
         typeof isInvoked === "boolean" &&
         !isInvoked &&
         capturedObjectProperties &&
         capturedObjectProperties.length > 0
       ) {
-        entry.object = entry.object || { env: new Map() };
+        entry.object = entry.object ?? { env: new Map() };
         serializeAll = await serializeSomeObjectPropertiesAsync(
           entry.object,
           capturedObjectProperties
