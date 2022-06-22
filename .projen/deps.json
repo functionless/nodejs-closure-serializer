@@ -107,6 +107,10 @@
       "type": "build"
     },
     {
+      "name": "typescript",
+      "type": "peer"
+    },
+    {
       "name": "normalize-package-data",
       "type": "runtime"
     },
@@ -120,10 +124,6 @@
     },
     {
       "name": "ts-node",
-      "type": "runtime"
-    },
-    {
-      "name": "typescript",
       "type": "runtime"
     },
     {

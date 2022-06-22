@@ -27,7 +27,6 @@ const project = new typescript.TypeScriptProject({
     "read-package-tree",
     "semver",
     "ts-node",
-    "typescript",
     "upath",
   ] /* Runtime dependencies of this module. */,
   description:
@@ -44,6 +43,7 @@ const project = new typescript.TypeScriptProject({
     "eslint-plugin-import",
     "mockpackage@file:test/mockpackage",
   ] /* Build dependencies for this module. */,
+  peerDeps: ["typescript"],
   // packageName: undefined,  /* The "name" in package.json. */
   tsconfig: {
     compilerOptions: {
