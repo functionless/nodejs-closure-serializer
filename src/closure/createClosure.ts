@@ -423,11 +423,13 @@ async function analyzeFunctionInfoAsync(
     const capturedValues: PropertyMap = new Map();
     await processCapturedVariablesAsync(
       parsedFunction.capturedVariables.required,
-      /*throwOnFailure:*/ true
+      /*throwOnFailure:*/ true,
+      parsedFunction.invokedNames
     );
     await processCapturedVariablesAsync(
       parsedFunction.capturedVariables.optional,
-      /*throwOnFailure:*/ false
+      /*throwOnFailure:*/ false,
+      parsedFunction.invokedNames
     );
 
     const functionInfo: FunctionInfo = {
@@ -453,7 +455,6 @@ async function analyzeFunctionInfoAsync(
     ) {
       const protoEntry = await getOrCreateEntryAsync(
         proto,
-        undefined,
         context,
         serialize,
         logInfo
@@ -505,14 +506,12 @@ async function analyzeFunctionInfoAsync(
 
       const keyEntry = await getOrCreateEntryAsync(
         getNameOrSymbol(descriptor),
-        undefined,
         context,
         serialize,
         logInfo
       );
       const valEntry = await getOrCreateEntryAsync(
         funcProp,
-        undefined,
         context,
         serialize,
         logInfo
@@ -578,7 +577,8 @@ async function analyzeFunctionInfoAsync(
 
     async function processCapturedVariablesAsync(
       capturedVariables: CapturedVariableMap,
-      throwOnFailure: boolean
+      throwOnFailure: boolean,
+      invokedNames: Set<string>
     ): Promise<void> {
       for (const name of capturedVariables.keys()) {
         let value: any;
@@ -612,7 +612,12 @@ async function analyzeFunctionInfoAsync(
           context.frames.push({ capturedVariableName: name });
         }
 
-        await processCapturedVariableAsync(capturedVariables, name, value);
+        await processCapturedVariableAsync(
+          capturedVariables,
+          name,
+          value,
+          invokedNames
+        );
 
         // Only if we pushed a frame on should we pop it off.
         if (context.frames.length !== frameLength) {
@@ -624,9 +629,11 @@ async function analyzeFunctionInfoAsync(
     async function processCapturedVariableAsync(
       capturedVariables: CapturedVariableMap,
       name: string,
-      value: any
+      value: any,
+      invokedNames: Set<string>
     ) {
       const properties = capturedVariables.get(name);
+      const invoked = invokedNames.has(name);
       const serializedName = await getOrCreateNameEntryAsync(
         name,
         undefined,
@@ -639,6 +646,7 @@ async function analyzeFunctionInfoAsync(
       const serializedValue = await getOrCreateEntryAsync(
         value,
         properties,
+        invoked,
         context,
         serialize,
         logInfo
@@ -868,7 +876,6 @@ async function createPropertyInfoAsync(
   if (descriptor.get) {
     propertyInfo.get = await getOrCreateEntryAsync(
       descriptor.get,
-      undefined,
       context,
       serialize,
       logInfo
@@ -877,7 +884,6 @@ async function createPropertyInfoAsync(
   if (descriptor.set) {
     propertyInfo.set = await getOrCreateEntryAsync(
       descriptor.set,
-      undefined,
       context,
       serialize,
       logInfo
@@ -892,11 +898,13 @@ function getOrCreateNameEntryAsync(
   capturedObjectProperties: CapturedPropertyChain[] | undefined,
   context: Context,
   serialize: (o: any) => boolean,
-  logInfo: boolean | undefined
+  logInfo: boolean | undefined,
+  isInvoked: boolean = true
 ): Promise<Entry> {
   return getOrCreateEntryAsync(
     name,
     capturedObjectProperties,
+    isInvoked,
     context,
     serialize,
     logInfo
@@ -910,11 +918,52 @@ function getOrCreateNameEntryAsync(
  */
 async function getOrCreateEntryAsync(
   obj: any,
-  capturedObjectProperties: CapturedPropertyChain[] | undefined,
   context: Context,
   serialize: (o: any) => boolean | any,
   logInfo: boolean | undefined
+): Promise<Entry>;
+/**
+ *
+ * @param isInvoked - true if the parent is invoked
+ */
+async function getOrCreateEntryAsync(
+  obj: any,
+  capturedObjectProperties: CapturedPropertyChain[] | undefined,
+  isInvoked: boolean,
+  context: Context,
+  serialize: (o: any) => boolean | any,
+  logInfo: boolean | undefined
+): Promise<Entry>;
+async function getOrCreateEntryAsync(
+  obj: any,
+  capturedObjectPropertiesOrContext:
+    | CapturedPropertyChain[]
+    | undefined
+    | Context,
+  isInvokedOrSerialize: boolean | ((o: any) => boolean | any),
+  contextOrLogInfo: Context | boolean | undefined,
+  serializeMaybe?: (o: any) => boolean | any,
+  logInfoMaybe?: boolean | undefined
 ): Promise<Entry> {
+  const [capturedObjectProperties, isInvoked, context, serialize, logInfo] =
+    serializeMaybe && typeof contextOrLogInfo === "object"
+      ? [
+          capturedObjectPropertiesOrContext as
+            | CapturedPropertyChain[]
+            | undefined,
+          isInvokedOrSerialize as boolean,
+          contextOrLogInfo as Context,
+          serializeMaybe as (o: any) => boolean | any,
+          logInfoMaybe as boolean,
+        ]
+      : [
+          undefined,
+          undefined,
+          capturedObjectPropertiesOrContext as Context,
+          isInvokedOrSerialize as (o: any) => boolean | any,
+          contextOrLogInfo as boolean,
+        ];
+
   // Check if this is a special number that we cannot json serialize.  Instead, we'll just inject
   // the code necessary to represent the number on the other side.  Note: we have to do this
   // before we do *anything* else.  This is because these special numbers don't even work in maps
@@ -941,17 +990,18 @@ async function getOrCreateEntryAsync(
   // See if we have a cache hit.  If yes, use the object as-is.
   let entry = context.cache.get(obj)!;
   if (entry) {
-    // Even though we've already serialized out this object, it might be the case
+    // Even though we've already serialized out this object or function, it might be the case
     // that we serialized out a different set of properties than the current set
     // we're being asked to serialize.  So we have to make sure that all these props
-    // are actually serialized.
+    // are actually serialized. We also might have found that a method was invoked/constructed when it was
+    // previously not.
     if (
       entry.object &&
       // re-run the do not capture logic to 1) skip if necessary 2) rewrite if necessary
       // FIXME: do not capture shouldn't mutate... impact is not clear.
       !doNotCapture()
     ) {
-      await serializeObjectAsync();
+      await dispatchAnyAsync();
     }
 
     return entry;
@@ -1038,18 +1088,35 @@ async function getOrCreateEntryAsync(
     if (normalizedModuleName) {
       await captureModuleAsync(normalizedModuleName);
     } else if (obj instanceof Function) {
-      // Serialize functions recursively, and store them in a closure property.
-      entry.function = await analyzeFunctionInfoAsync(
-        obj,
-        context,
-        serialize,
-        logInfo
-      );
+      let serializeAll = true;
+
+      // if the function was not invoked, attempt to serialize the function like an object
+      // possibly only taking properties that were used (so far).
+      if (
+        typeof isInvoked === "boolean" &&
+        !isInvoked &&
+        capturedObjectProperties &&
+        capturedObjectProperties.length > 0
+      ) {
+        entry.object = entry.object ?? { env: new Map() };
+        serializeAll = await serializeSomeObjectPropertiesAsync(
+          entry.object,
+          capturedObjectProperties
+        );
+      }
+      if (serializeAll) {
+        // Serialize functions recursively, and store them in a closure property.
+        entry.function = await analyzeFunctionInfoAsync(
+          obj,
+          context,
+          serialize,
+          logInfo
+        );
+      }
     } else if (obj instanceof Promise) {
       const val = await obj;
       entry.promise = await getOrCreateEntryAsync(
         val,
-        undefined,
         context,
         serialize,
         logInfo
@@ -1062,7 +1129,6 @@ async function getOrCreateEntryAsync(
         if (descriptor.name !== undefined && descriptor.name !== "length") {
           entry.array[<any>descriptor.name] = await getOrCreateEntryAsync(
             await getOwnPropertyAsync(obj, descriptor),
-            undefined,
             context,
             serialize,
             logInfo
@@ -1078,13 +1144,7 @@ async function getOrCreateEntryAsync(
       entry.array = [];
       for (const elem of obj) {
         entry.array.push(
-          await getOrCreateEntryAsync(
-            elem,
-            undefined,
-            context,
-            serialize,
-            logInfo
-          )
+          await getOrCreateEntryAsync(elem, context, serialize, logInfo)
         );
       }
     } else {
@@ -1132,7 +1192,6 @@ async function getOrCreateEntryAsync(
     for (const descriptor of descriptors) {
       const keyEntry = await getOrCreateEntryAsync(
         getNameOrSymbol(descriptor),
-        undefined,
         context,
         serialize,
         logInfo
@@ -1162,7 +1221,6 @@ async function getOrCreateEntryAsync(
       const prop = await getOwnPropertyAsync(obj, descriptor);
       const valEntry = await getOrCreateEntryAsync(
         prop,
-        undefined,
         context,
         serialize,
         logInfo
@@ -1185,7 +1243,6 @@ async function getOrCreateEntryAsync(
       } else if (proto !== Object.prototype) {
         object.proto = await getOrCreateEntryAsync(
           proto,
-          undefined,
           context,
           serialize,
           logInfo
@@ -1281,6 +1338,7 @@ async function getOrCreateEntryAsync(
         if (nestedPropChains.some((chain) => chain.infos.length === 0)) {
           nestedPropChains = [];
         }
+        const anyInvoked = propChains.some((x) => x.infos[0].invoked);
 
         // Note: objPropValue can be undefined here.  That's the case where the
         // object does have the property, but the property is just set to the
@@ -1288,6 +1346,7 @@ async function getOrCreateEntryAsync(
         const valEntry = await getOrCreateEntryAsync(
           objPropValue,
           nestedPropChains,
+          anyInvoked,
           context,
           serialize,
           logInfo

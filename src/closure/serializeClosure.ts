@@ -529,7 +529,7 @@ function isNumeric(n: string) {
 
 function isObjOrArrayOrRegExp(env: closure.Entry): boolean {
   return (
-    env.object !== undefined ||
+    (env.object !== undefined && env.function === undefined) ||
     env.array !== undefined ||
     env.regexp !== undefined
   );

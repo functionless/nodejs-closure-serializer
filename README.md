@@ -33,6 +33,7 @@ However, Pulumi's serializer had a few short comings:
 * Removed: Pulumi Secret support
 * Removed: Pulumi Logging support
 * Change: `serialize` function support replacement of runtime data to be serialized on top of avoiding serialization
+* Change: [Do not serialize functions and constructors that are not invoked](https://github.com/functionless/nodejs-closure-serializer/pull/8)
 
 ## Forked from
 
