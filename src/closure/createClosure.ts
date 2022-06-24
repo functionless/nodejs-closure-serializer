@@ -401,11 +401,6 @@ async function analyzeFunctionInfoAsync(
   }
 
   async function serializeWorkerAsync(): Promise<FunctionInfo> {
-    const funcEntry = context.cache.get(func);
-    if (!funcEntry) {
-      throw new Error("Entry for this this function was not created by caller");
-    }
-
     // First, convert the js func object to a reasonable stringified version that we can operate on.
     // Importantly, this function helps massage all the different forms that V8 can produce to
     // either a "function (...) { ... }" form, or a "(...) => ..." form.  In other words, all
@@ -561,6 +556,13 @@ async function analyzeFunctionInfoAsync(
     // i.e. the inner call to "f();" will actually call the *outer* __f function, and not
     // itself.
     if (functionDeclarationName !== undefined) {
+      const funcEntry = context.cache.get(func);
+      if (!funcEntry) {
+        throw new Error(
+          "Entry for this this function was not created by caller"
+        );
+      }
+
       capturedValues.set(
         await getOrCreateNameEntryAsync(
           functionDeclarationName,
