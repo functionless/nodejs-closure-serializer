@@ -23,6 +23,7 @@
     "strictPropertyInitialization": true,
     "stripInternal": true,
     "target": "ES2016",
+    "declarationMap": true,
     "skipLibCheck": true,
     "moduleResolution": "node"
   },

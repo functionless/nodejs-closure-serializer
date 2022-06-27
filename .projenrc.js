@@ -47,6 +47,7 @@ const project = new typescript.TypeScriptProject({
   // packageName: undefined,  /* The "name" in package.json. */
   tsconfig: {
     compilerOptions: {
+      declarationMap: true,
       skipLibCheck: true,
       target: "ES2016",
       module: "commonjs",
