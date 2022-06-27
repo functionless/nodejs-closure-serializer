@@ -25,6 +25,7 @@ import {
   parseFunction,
 } from "./parseFunction";
 import { rewriteSuperReferences } from "./rewriteSuper";
+import { SerializeFunctionArgs } from "./serializeClosure";
 import * as utils from "./utils";
 import * as v8 from "./v8";
 
@@ -208,7 +209,7 @@ export interface ClosureInfo {
  */
 export async function createClosureInfoAsync(
   func: Function,
-  serialize: (o: any) => boolean
+  args: SerializeFunctionArgs
 ): Promise<ClosureInfo> {
   // Initialize our Context object.  It is effectively used to keep track of the work we're doing
   // as well as to keep track of the graph as we're walking it so we don't infinitely recurse.
@@ -231,7 +232,7 @@ export async function createClosureInfoAsync(
   const entry: Entry = {};
   context.cache.set(func, entry);
 
-  entry.function = await analyzeFunctionInfoAsync(func, context, serialize);
+  entry.function = await analyzeFunctionInfoAsync(func, context, args);
 
   return {
     func: entry.function,
@@ -345,7 +346,7 @@ export async function createClosureInfoAsync(
 async function analyzeFunctionInfoAsync(
   func: Function,
   context: Context,
-  serialize: (o: any) => boolean,
+  args: SerializeFunctionArgs,
   logInfo?: boolean
 ): Promise<FunctionInfo> {
   // logInfo = logInfo || func.name === "addHandler";
@@ -406,7 +407,7 @@ async function analyzeFunctionInfoAsync(
     // either a "function (...) { ... }" form, or a "(...) => ..." form.  In other words, all
     // 'funky' functions (like classes and whatnot) will be transformed to reasonable forms we can
     // process down the pipeline.
-    const [error, parsedFunction] = parseFunction(functionString);
+    const [error, parsedFunction] = parseFunction(functionString, args);
     if (error) {
       throwSerializationError(func, context, error);
     }
@@ -451,7 +452,7 @@ async function analyzeFunctionInfoAsync(
       const protoEntry = await getOrCreateEntryAsync(
         proto,
         context,
-        serialize,
+        args,
         logInfo
       );
       functionInfo.proto = protoEntry;
@@ -502,19 +503,19 @@ async function analyzeFunctionInfoAsync(
       const keyEntry = await getOrCreateEntryAsync(
         getNameOrSymbol(descriptor),
         context,
-        serialize,
+        args,
         logInfo
       );
       const valEntry = await getOrCreateEntryAsync(
         funcProp,
         context,
-        serialize,
+        args,
         logInfo
       );
       const propertyInfo = await createPropertyInfoAsync(
         descriptor,
         context,
-        serialize,
+        args,
         logInfo
       );
 
@@ -532,7 +533,7 @@ async function analyzeFunctionInfoAsync(
           "__super",
           undefined,
           context,
-          serialize,
+          args,
           logInfo
         ),
         { entry: superEntry }
@@ -568,7 +569,7 @@ async function analyzeFunctionInfoAsync(
           functionDeclarationName,
           undefined,
           context,
-          serialize,
+          args,
           logInfo
         ),
         { entry: funcEntry }
@@ -640,7 +641,7 @@ async function analyzeFunctionInfoAsync(
         name,
         undefined,
         context,
-        serialize,
+        args,
         logInfo
       );
 
@@ -650,7 +651,7 @@ async function analyzeFunctionInfoAsync(
         properties,
         invoked,
         context,
-        serialize,
+        args,
         logInfo
       );
 
@@ -866,7 +867,7 @@ async function isDefaultFunctionPrototypeAsync(
 async function createPropertyInfoAsync(
   descriptor: ClosurePropertyDescriptor,
   context: Context,
-  serialize: (o: any) => boolean,
+  args: SerializeFunctionArgs,
   logInfo: boolean | undefined
 ): Promise<PropertyInfo> {
   const propertyInfo = <PropertyInfo>{
@@ -879,7 +880,7 @@ async function createPropertyInfoAsync(
     propertyInfo.get = await getOrCreateEntryAsync(
       descriptor.get,
       context,
-      serialize,
+      args,
       logInfo
     );
   }
@@ -887,7 +888,7 @@ async function createPropertyInfoAsync(
     propertyInfo.set = await getOrCreateEntryAsync(
       descriptor.set,
       context,
-      serialize,
+      args,
       logInfo
     );
   }
@@ -899,7 +900,7 @@ function getOrCreateNameEntryAsync(
   name: string,
   capturedObjectProperties: CapturedPropertyChain[] | undefined,
   context: Context,
-  serialize: (o: any) => boolean,
+  args: SerializeFunctionArgs,
   logInfo: boolean | undefined,
   isInvoked: boolean = true
 ): Promise<Entry> {
@@ -908,7 +909,7 @@ function getOrCreateNameEntryAsync(
     capturedObjectProperties,
     isInvoked,
     context,
-    serialize,
+    args,
     logInfo
   );
 }
@@ -921,7 +922,7 @@ function getOrCreateNameEntryAsync(
 async function getOrCreateEntryAsync(
   obj: any,
   context: Context,
-  serialize: (o: any) => boolean | any,
+  args: SerializeFunctionArgs,
   logInfo: boolean | undefined
 ): Promise<Entry>;
 /**
@@ -933,7 +934,7 @@ async function getOrCreateEntryAsync(
   capturedObjectProperties: CapturedPropertyChain[] | undefined,
   isInvoked: boolean,
   context: Context,
-  serialize: (o: any) => boolean | any,
+  args: SerializeFunctionArgs,
   logInfo: boolean | undefined
 ): Promise<Entry>;
 async function getOrCreateEntryAsync(
@@ -942,27 +943,27 @@ async function getOrCreateEntryAsync(
     | CapturedPropertyChain[]
     | undefined
     | Context,
-  isInvokedOrSerialize: boolean | ((o: any) => boolean | any),
+  isInvokedOrArgs: boolean | SerializeFunctionArgs,
   contextOrLogInfo: Context | boolean | undefined,
-  serializeMaybe?: (o: any) => boolean | any,
+  args?: SerializeFunctionArgs,
   logInfoMaybe?: boolean | undefined
 ): Promise<Entry> {
-  const [capturedObjectProperties, isInvoked, context, serialize, logInfo] =
-    serializeMaybe && typeof contextOrLogInfo === "object"
+  const [capturedObjectProperties, isInvoked, context, serializeArgs, logInfo] =
+    args && typeof contextOrLogInfo === "object"
       ? [
           capturedObjectPropertiesOrContext as
             | CapturedPropertyChain[]
             | undefined,
-          isInvokedOrSerialize as boolean,
+          isInvokedOrArgs as boolean,
           contextOrLogInfo as Context,
-          serializeMaybe as (o: any) => boolean | any,
+          args as SerializeFunctionArgs,
           logInfoMaybe as boolean,
         ]
       : [
           undefined,
           undefined,
           capturedObjectPropertiesOrContext as Context,
-          isInvokedOrSerialize as (o: any) => boolean | any,
+          isInvokedOrArgs as SerializeFunctionArgs,
           contextOrLogInfo as boolean,
         ];
 
@@ -1035,7 +1036,7 @@ async function getOrCreateEntryAsync(
   return entry;
 
   function doNotCapture(): boolean | any {
-    const val = serialize(obj);
+    const val = serializeArgs.serialize(obj);
     if (!val) {
       // caller explicitly does not want us to capture this value.
       return true;
@@ -1111,7 +1112,7 @@ async function getOrCreateEntryAsync(
         entry.function = await analyzeFunctionInfoAsync(
           obj,
           context,
-          serialize,
+          serializeArgs,
           logInfo
         );
       }
@@ -1120,7 +1121,7 @@ async function getOrCreateEntryAsync(
       entry.promise = await getOrCreateEntryAsync(
         val,
         context,
-        serialize,
+        serializeArgs,
         logInfo
       );
     } else if (obj instanceof Array) {
@@ -1132,7 +1133,7 @@ async function getOrCreateEntryAsync(
           entry.array[<any>descriptor.name] = await getOrCreateEntryAsync(
             await getOwnPropertyAsync(obj, descriptor),
             context,
-            serialize,
+            serializeArgs,
             logInfo
           );
         }
@@ -1146,7 +1147,7 @@ async function getOrCreateEntryAsync(
       entry.array = [];
       for (const elem of obj) {
         entry.array.push(
-          await getOrCreateEntryAsync(elem, context, serialize, logInfo)
+          await getOrCreateEntryAsync(elem, context, serializeArgs, logInfo)
         );
       }
     } else {
@@ -1195,7 +1196,7 @@ async function getOrCreateEntryAsync(
       const keyEntry = await getOrCreateEntryAsync(
         getNameOrSymbol(descriptor),
         context,
-        serialize,
+        serializeArgs,
         logInfo
       );
 
@@ -1217,14 +1218,14 @@ async function getOrCreateEntryAsync(
       const propertyInfo = await createPropertyInfoAsync(
         descriptor,
         context,
-        serialize,
+        serializeArgs,
         logInfo
       );
       const prop = await getOwnPropertyAsync(obj, descriptor);
       const valEntry = await getOrCreateEntryAsync(
         prop,
         context,
-        serialize,
+        serializeArgs,
         logInfo
       );
 
@@ -1246,7 +1247,7 @@ async function getOrCreateEntryAsync(
         object.proto = await getOrCreateEntryAsync(
           proto,
           context,
-          serialize,
+          serializeArgs,
           logInfo
         );
       }
@@ -1293,7 +1294,7 @@ async function getOrCreateEntryAsync(
         propName,
         undefined,
         context,
-        serialize,
+        serializeArgs,
         logInfo
       );
 
@@ -1350,7 +1351,7 @@ async function getOrCreateEntryAsync(
           nestedPropChains,
           anyInvoked,
           context,
-          serialize,
+          serializeArgs,
           logInfo
         );
 
@@ -1414,7 +1415,7 @@ async function getOrCreateEntryAsync(
         const propertyInfo = await createPropertyInfoAsync(
           closurePropDescriptor,
           context,
-          serialize,
+          serializeArgs,
           logInfo
         );
         return propertyInfo;

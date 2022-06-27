@@ -14,6 +14,7 @@
 
 import * as ts from "typescript";
 import * as log from "../log";
+import { SerializeFunctionArgs } from "./serializeClosure";
 import * as utils from "./utils";
 
 /** @internal */
@@ -103,7 +104,10 @@ const nodeModuleGlobals: { [key: string]: boolean } = {
 // particular, it has expectations around how functions/lambdas/methods/generators/constructors etc.
 // are represented.  If these change, this will likely break us.
 /** @internal */
-export function parseFunction(funcString: string): [string, ParsedFunction] {
+export function parseFunction(
+  funcString: string,
+  args: SerializeFunctionArgs
+): [string, ParsedFunction] {
   const [error, functionCode] = parseFunctionCode(funcString);
   if (error) {
     return [error, <any>undefined];
@@ -112,7 +116,7 @@ export function parseFunction(funcString: string): [string, ParsedFunction] {
   // In practice it's not guaranteed that a function's toString is parsable by TypeScript.
   // V8 intrinsics are prefixed with a '%' and TypeScript does not consider that to be a valid
   // identifier.
-  const [parseError, file] = createSourceFile(functionCode);
+  const [parseError, file] = createSourceFile(functionCode, args);
   if (parseError) {
     return [parseError, <any>undefined];
   }
@@ -128,6 +132,7 @@ export function parseFunction(funcString: string): [string, ParsedFunction] {
   result.capturedVariables = capturedVariables;
   result.usesNonLexicalThis = usesNonLexicalThis;
   result.invokedNames = invokedNames;
+  result.funcExprWithoutName = file?.getText() ?? result.funcExprWithoutName;
 
   if (result.capturedVariables.required.has("this")) {
     return [
@@ -364,7 +369,8 @@ function isComputed(v: string, openParenIndex: number) {
 }
 
 function createSourceFile(
-  serializedFunction: ParsedFunctionCode
+  serializedFunction: ParsedFunctionCode,
+  args: SerializeFunctionArgs
 ): [string, ts.SourceFile | null] {
   const funcstr =
     serializedFunction.funcExprWithName ||
@@ -381,7 +387,26 @@ function createSourceFile(
     return [`the function could not be parsed: ${firstDiagnostic}`, null];
   }
 
-  return ["", file!];
+  return ["", cleanSourceFile(file!, args)];
+}
+
+function cleanSourceFile(
+  code: ts.SourceFile,
+  args: SerializeFunctionArgs
+): ts.SourceFile {
+  if (args.transformers === undefined || args.transformers.length === 0) {
+    return code;
+  }
+
+  const { transformed } = ts.transform(code, args.transformers);
+  const printer = ts.createPrinter({ newLine: ts.NewLineKind.LineFeed });
+  return ts.createSourceFile(
+    "",
+    printer.printNode(ts.EmitHint.Unspecified, transformed[0], code).trim(),
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.JS
+  );
 }
 
 function tryCreateSourceFile(

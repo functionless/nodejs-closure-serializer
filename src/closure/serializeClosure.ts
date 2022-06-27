@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import type * as ts from "typescript";
 import * as closure from "./createClosure";
 import * as utils from "./utils";
 
@@ -27,7 +28,11 @@ export interface SerializeFunctionArgs {
    * A function to prevent serialization of certain objects captured during the serialization.  Primarily used to
    * prevent potential cycles.
    */
-  serialize?: (o: any) => boolean | any;
+  serialize: (o: any) => boolean | any;
+  /**
+   * List of transformers to apply to closures.
+   */
+  transformers?: ts.TransformerFactory<ts.Node>[];
   /**
    * If this is a function which, when invoked, will produce the actual entrypoint function.
    * Useful for when serializing a function that has high startup cost that only wants to be
@@ -76,14 +81,16 @@ export interface SerializedFunction {
  */
 export async function serializeFunction(
   func: Function,
-  args: SerializeFunctionArgs = {}
+  args: Partial<SerializeFunctionArgs> = {}
 ): Promise<SerializedFunction> {
   const exportName = args.exportName || "handler";
-  const serialize = args.serialize || ((_) => true);
   const isFactoryFunction =
     args.isFactoryFunction === undefined ? false : args.isFactoryFunction;
 
-  const closureInfo = await closure.createClosureInfoAsync(func, serialize);
+  const closureInfo = await closure.createClosureInfoAsync(func, {
+    ...args,
+    serialize: args.serialize ?? (() => true),
+  });
   return serializeJavaScriptText(closureInfo, exportName, isFactoryFunction);
 }
 
