@@ -17,7 +17,7 @@
 import { serializeFunction } from "../src";
 import { assertAsyncThrows, asyncTest } from "./util";
 import { platformIndependentEOL } from "./constants";
-import typescript from "typescript";
+import ts from "typescript";
 import * as semver from "semver";
 import { z } from "mockpackage";
 
@@ -32,6 +32,7 @@ interface ClosureCase {
   snapshot?:boolean; // optionally snapshot the outputs
   error?: string; // error message we expect to be thrown if we are unable to serialize closure.
   afters?: ClosureCase[]; // an optional list of test cases to run afterwards.
+  transformers?: ts.TransformerFactory<ts.Node>[];
 }
 
 /** @internal */
@@ -5594,7 +5595,7 @@ return function () { console.log(getAll()); };
   {
       cases.push({
           title: "Capture non-built-in module",
-          func: function () { typescript.parseCommandLine([""]); },
+          func: function () { ts.parseCommandLine([""]); },
           expectText: `exports.handler = __f0;
 
 var __typescript_1 = {default: require("typescript/lib/typescript.js")};
@@ -6346,6 +6347,68 @@ return function /*reproHandler*/(input) {
       })
   }
 
+  function wrap<F extends (...args: any[]) => any>(f: F): F {
+    return f;
+  }
+
+  cases.push({
+    title: "Remove specific syntax with a TypeScript transformer",
+    func: function foo() {
+      wrap((text: string) => `hello ${text}`)
+      const a = wrap((text: string) => `hello ${text}`);
+      const b = [wrap((text: string) => `hello ${text}`)];
+      const c = {
+        prop: wrap((text: string) => `hello ${text}`)
+      };
+
+      function bar(...args: any[]) {
+        const a = wrap((text: string) => `hello ${text}`);
+        const b = [wrap((text: string) => `hello ${text}`)];
+        const c = {
+          prop: wrap((text: string) => `hello ${text}`)
+        };
+
+        return [a, b, c, ...args];
+      }
+
+      return wrap(() => bar(a, b, c));
+    },
+    expectText: `exports.handler = __foo;
+
+function __foo() {
+  return (function() {
+    with({ foo: __foo }) {
+
+return (function foo() {
+    (text) => \`hello \${text}\`;
+    const a = (text) => \`hello \${text}\`;
+    const b = [(text) => \`hello \${text}\`];
+    const c = {
+        prop: (text) => \`hello \${text}\`
+    };
+    function bar(...args) {
+        const a = (text) => \`hello \${text}\`;
+        const b = [(text) => \`hello \${text}\`];
+        const c = {
+            prop: (text) => \`hello \${text}\`
+        };
+        return [a, b, c, ...args];
+    }
+    return () => bar(a, b, c);
+});;
+
+    }
+  }).apply(undefined, undefined).apply(this, arguments);
+}
+`,
+    transformers: [(ctx) => function clean(node: ts.Node) {
+      if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === "wrap" && node.arguments.length === 1) {
+        node = node.arguments[0];
+      }
+      return ts.visitEachChild(node, clean, ctx);
+    }]
+  })
+
   // Run a bunch of direct checks on async js functions if we're in node 8 or above.
   // We can't do this inline as node6 doesn't understand 'async functions'.  And we
   // can't do this in TS as TS will convert the async-function to be a normal non-async
@@ -6380,14 +6443,14 @@ return function /*reproHandler*/(input) {
           }
 
           // Invoke the test case.
-          if (test.expectText || test.snapshot) {
+          if (test.expectText !== undefined || test.snapshot) {
             const sf = await serializeFunctionTest(test);
-            if(test.expectText) {
-                compareTextWithWildcards(test.expectText, sf.text);
-              }
-              if(test.snapshot) {
-                expect(sf).toMatchSnapshot();
-              }
+            if(test.expectText !== undefined) {
+              compareTextWithWildcards(test.expectText, sf.text);
+            }
+            if(test.snapshot) {
+              expect(sf).toMatchSnapshot();
+            }
           }
           else {
               const message = await assertAsyncThrows(async () => {
@@ -6413,11 +6476,13 @@ return function /*reproHandler*/(input) {
   async function serializeFunctionTest(test: ClosureCase) {
       if (test.func) {
           return await serializeFunction(test.func, {
+            transformers: test.transformers
           });
       }
       else if (test.factoryFunc) {
           return await serializeFunction(test.factoryFunc!, {
             isFactoryFunction: true,
+            transformers: test.transformers
           });
       }
       else {

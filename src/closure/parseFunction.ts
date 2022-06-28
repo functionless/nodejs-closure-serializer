@@ -132,7 +132,10 @@ export function parseFunction(
   result.capturedVariables = capturedVariables;
   result.usesNonLexicalThis = usesNonLexicalThis;
   result.invokedNames = invokedNames;
-  result.funcExprWithoutName = file?.getText() ?? result.funcExprWithoutName;
+  if (args.transformers !== undefined && args.transformers.length > 0) {
+    // we're only going to update the file if transformers are applied
+    result.funcExprWithoutName = file?.getText() ?? result.funcExprWithoutName;
+  }
 
   if (result.capturedVariables.required.has("this")) {
     return [
@@ -390,19 +393,38 @@ function createSourceFile(
   return ["", cleanSourceFile(file!, args)];
 }
 
+/**
+ * Transforms the {@link closure} prior to serialization so that consumers
+ * of this library can modify the syntax directly.
+ *
+ * For example: [Functionless](https://github.com/functionless/functionless)
+ * removes decorator functions that wrapp function closures.
+ *
+ * ```ts
+ * const foo = functionless.associateAST(() => "hello", new FunctionDecl(..);
+ * ```
+ *
+ * @param closure the closure to serialize - a source file containing a single
+ *                FunctionDeclaration or ExprStmt(FunctionExpression).
+ * @param serializeProps properties to customize serialization behavior.
+ * @returns a source file containing the transformed closure
+ */
 function cleanSourceFile(
-  code: ts.SourceFile,
-  args: SerializeFunctionArgs
+  closure: ts.SourceFile,
+  serializeProps: SerializeFunctionArgs
 ): ts.SourceFile {
-  if (args.transformers === undefined || args.transformers.length === 0) {
-    return code;
+  if (
+    serializeProps.transformers === undefined ||
+    serializeProps.transformers.length === 0
+  ) {
+    return closure;
   }
 
-  const { transformed } = ts.transform(code, args.transformers);
+  const { transformed } = ts.transform(closure, serializeProps.transformers);
   const printer = ts.createPrinter({ newLine: ts.NewLineKind.LineFeed });
   return ts.createSourceFile(
     "",
-    printer.printNode(ts.EmitHint.Unspecified, transformed[0], code).trim(),
+    printer.printNode(ts.EmitHint.Unspecified, transformed[0], closure).trim(),
     ts.ScriptTarget.Latest,
     true,
     ts.ScriptKind.JS

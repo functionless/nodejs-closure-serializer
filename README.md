@@ -35,6 +35,7 @@ However, Pulumi's serializer had a few short comings:
 * Change: `serialize` function support replacement of runtime data to be serialized on top of avoiding serialization
 * Change: [Do not serialize functions and constructors that are not invoked](https://github.com/functionless/nodejs-closure-serializer/pull/8)
 * Change: Anonymous functions can be injected at runtime through the serialize callback.
+* Change: Allow for TypeScript TransformerFactory functions to be applied to serialized closures.
 
 ## Forked from
 
