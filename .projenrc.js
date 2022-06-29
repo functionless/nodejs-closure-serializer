@@ -42,6 +42,8 @@ const project = new typescript.TypeScriptProject({
     "eslint-plugin-header",
     "eslint-plugin-import",
     "mockpackage@file:test/mockpackage",
+    "aws-serverless-express",
+    "express",
   ] /* Build dependencies for this module. */,
   peerDeps: ["typescript"],
   // packageName: undefined,  /* The "name" in package.json. */
@@ -61,6 +63,7 @@ const project = new typescript.TypeScriptProject({
     jestConfig: {
       collectCoverage: false,
       coveragePathIgnorePatterns: ["/test/", "/node_modules/"],
+      modulePathIgnorePatterns: ["/test/**/*.js"],
       globals: {
         "ts-jest": {
           isolatedModules: true,
@@ -76,6 +79,7 @@ const project = new typescript.TypeScriptProject({
   prettier: true,
   prettierOptions: {},
 });
+project.addGitIgnore("/test-generated-closures/");
 
 new GitHooksPreCommitComponent(project);
 

@@ -180,28 +180,24 @@ function serializeJavaScriptText(
       .map((_, index) => `__${index}`)
       .join(", ");
 
-    functionText +=
-      "\n" +
-      "function " +
-      varName +
-      "(" +
-      parameters +
-      ") {\n" +
-      "  return (function() {\n" +
-      "    with(" +
-      envObjToString(capturedValues) +
-      ") {\n\n" +
-      "return " +
-      functionInfo.code +
-      ";\n\n" +
-      "    }\n" +
-      "  }).apply(" +
-      thisCapture +
-      ", " +
-      argumentsCapture +
-      ").apply(this, arguments);\n" +
-      "}\n";
-
+    if (Object.keys(capturedValues).length > 0) {
+      functionText += `function ${varName}(${parameters}) {
+  return (function() {
+    ${
+      Object.entries(capturedValues)
+        .map(([name, value]) => `let ${name} = ${value};`)
+        .join("\n    ") + "\n"
+    }
+    return ${functionInfo.code};
+  }).apply(${thisCapture}, ${argumentsCapture}).apply(this, arguments);
+}`;
+    } else {
+      functionText += `function ${varName}(${parameters}) {
+  return (function() {
+    return ${functionInfo.code};
+  }).apply(${thisCapture}, ${argumentsCapture}).apply(this, arguments);
+}`;
+    }
     // If this function is complex (i.e. non-default __proto__, or has properties, etc.)
     // then emit those as well.
     emitComplexObjectProperties(varName, varName, functionInfo);
