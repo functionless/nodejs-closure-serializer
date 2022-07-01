@@ -14,7 +14,7 @@
 
 /* eslint-disable */
 
-import { serializeFunction } from "../src";
+import { serializeFunction2 } from "../src";
 import { assertAsyncThrows, asyncTest } from "./util";
 import { platformIndependentEOL } from "./constants";
 import ts from "typescript";
@@ -179,7 +179,9 @@ return function (thisArg, _arguments, P, generator) {
     title: "Arrow closure with this and arguments capture",
     // @ts-ignore: this is just test code.
     func: function () {
-      return () => { console.log(this + arguments); };
+      return () => {
+        console.log(this + arguments);
+      };
     }.apply(this, [0, 1]),
     error: `Error serializing function '<anonymous>'
 
@@ -369,10 +371,10 @@ Function code:
     cases.push({
       title: "Serializes basic captures",
       func: () => {
-        return wcap + `${xcap}` + ycap.length + zcap.a + zcap.b + zcap.c
+        return wcap + `${xcap}` + ycap.length + zcap.a + zcap.b + zcap.c;
       },
       snapshot: true,
-      expectResult: wcap + `${xcap}` + ycap.length + zcap.a + zcap.b + zcap.c
+      expectResult: wcap + `${xcap}` + ycap.length + zcap.a + zcap.b + zcap.c,
     });
   }
   {
@@ -630,7 +632,7 @@ Function code:
 
   const func = function () {
     return this;
-  }
+  };
 
   cases.push({
     title: "Don't serialize `this` in function expressions",
@@ -689,8 +691,8 @@ Function code:
   {
     cases.push({
       title: "Undeclared variable in typeof",
-      // @ts-ignore
       func: function () {
+        // @ts-ignore
         const x = typeof a;
       },
       snapshot: true,
@@ -819,7 +821,7 @@ Function code:
       title: "Serialize constructed class",
       func: () => new C(),
       snapshot: true,
-      expectResult: {x: 1},
+      expectResult: { x: 1 },
     });
   }
 
@@ -832,14 +834,14 @@ Function code:
         return 0;
       }
     }
-    const c = new C()
+    const c = new C();
 
     cases.push({
       title: "Serialize instance class methods",
       func: c.m.bind(c),
       snapshot: true,
       expectResult: 0,
-      noClean: true
+      noClean: true,
     });
   }
 
@@ -856,7 +858,7 @@ Function code:
       title: "Serialize instance class methods, forget to bind",
       func: new C().m,
       snapshot: true,
-      expectThrow: new TypeError("this.n is not a function")
+      expectThrow: new TypeError("this.n is not a function"),
     });
   }
 
@@ -2823,7 +2825,7 @@ Function code:
       return whatever;
     },
     snapshot: true,
-    inputArguments: [{whatever: "hello"}],
+    inputArguments: [{ whatever: "hello" }],
     expectResult: "hello",
   });
 
@@ -2832,7 +2834,7 @@ Function code:
     func: async function f({ whatever }) {
       return whatever;
     },
-    inputArguments: [{whatever: "hello"}],
+    inputArguments: [{ whatever: "hello" }],
     expectResult: "hello",
     snapshot: true,
   });
@@ -2842,7 +2844,7 @@ Function code:
     // @ts-ignore
     func: ({ whatever }) => whatever,
     snapshot: true,
-    inputArguments: [{whatever: "hello"}],
+    inputArguments: [{ whatever: "hello" }],
     expectResult: "hello",
   });
 
@@ -2979,7 +2981,7 @@ Function code:
     // @ts-ignore
     func: async ({ whatever }) => whatever,
     snapshot: true,
-    inputArguments: [{whatever: "hello"}],
+    inputArguments: [{ whatever: "hello" }],
     expectResult: "hello",
   });
 
@@ -3054,9 +3056,11 @@ Function code:
     cases.push({
       title: "Respects package.json exports",
       func: reproHandler,
-      inputArguments: [{
-        message: "message in a bottle"
-      }],
+      inputArguments: [
+        {
+          message: "message in a bottle",
+        },
+      ],
       expectResult: "message in a bottle",
       snapshot: true,
     });
@@ -3143,14 +3147,12 @@ Function code:
     it(
       test.title,
       asyncTest(async () => {
-        
         // Run pre-actions.
         if (test.pre) {
           test.pre();
         }
 
         try {
-
           // Invoke the test case.
           if (test.expectText !== undefined || test.snapshot) {
             const sf = await serializeFunctionTest(test);
@@ -3160,9 +3162,12 @@ Function code:
             if (test.snapshot) {
               expect(sf).toMatchSnapshot();
             }
-  
+
             if ("expectResult" in test || "expectThrow" in test) {
-              const fileName = path.join(__dirname, test.title.replace(/\//g, "_") + ".js");
+              const fileName = path.join(
+                __dirname,
+                test.title.replace(/\//g, "_") + ".js"
+              );
               try {
                 fs.writeFileSync(fileName, sf.text);
                 const module = require(fileName);
@@ -3174,12 +3179,12 @@ Function code:
                 expect(result).toEqual(test.expectResult);
               } catch (err) {
                 if ("expectThrow" in test) {
-                  expect(err).toEqual(test.expectThrow)
+                  expect(err).toEqual(test.expectThrow);
                 } else {
                   throw err;
                 }
               } finally {
-                if(!test.noClean) {
+                if (!test.noClean) {
                   fs.rmSync(fileName);
                 }
               }
@@ -3188,7 +3193,7 @@ Function code:
             const message = await assertAsyncThrows(async () => {
               await serializeFunctionTest(test);
             });
-  
+
             // replace real locations with (0,0) so that our test baselines do not need to
             // updated any time this file changes.
             const regex = /\([0-9]+,[0-9]+\)/g;
@@ -3203,7 +3208,6 @@ Function code:
             return;
           }
         }
-
       })
     );
 
@@ -3214,11 +3218,11 @@ Function code:
   }
   async function serializeFunctionTest(test: ClosureCase) {
     if (test.func) {
-      return await serializeFunction(test.func, {
+      return await serializeFunction2(test.func, {
         transformers: test.transformers,
       });
     } else if (test.factoryFunc) {
-      return await serializeFunction(test.factoryFunc!, {
+      return await serializeFunction2(test.factoryFunc!, {
         isFactoryFunction: true,
         transformers: test.transformers,
       });

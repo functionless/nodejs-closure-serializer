@@ -28,6 +28,7 @@ const project = new typescript.TypeScriptProject({
     "semver",
     "ts-node",
     "upath",
+    "immutable",
   ] /* Runtime dependencies of this module. */,
   description:
     "A fork of the nodejs closure serializer in @pulumi/pulumi" /* The description is just a string that helps people understand the purpose of the package. */,
@@ -63,7 +64,6 @@ const project = new typescript.TypeScriptProject({
     jestConfig: {
       collectCoverage: false,
       coveragePathIgnorePatterns: ["/test/", "/node_modules/"],
-      modulePathIgnorePatterns: ["/test/**/*.js"],
       globals: {
         "ts-jest": {
           isolatedModules: true,

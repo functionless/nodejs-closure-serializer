@@ -119,6 +119,10 @@
       "type": "peer"
     },
     {
+      "name": "immutable",
+      "type": "runtime"
+    },
+    {
       "name": "normalize-package-data",
       "type": "runtime"
     },

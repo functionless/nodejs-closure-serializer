@@ -1,0 +1,52 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`arrow function nested within a function 1`] = `
+"var v1 = { internal: \\"value\\" };
+const f1 = (_self => function foo() {
+    return ((val) => \`\${val} \${this.internal}\`)(\\"hello\\");
+}.bind(_self))(v1);
+exports.handler = f1"
+`;
+
+exports[`capturing a reference to a function 1`] = `
+"const f1 = (() => function foo() {
+    return \\"hello\\";
+})();
+const f2 = (foo => () => foo())(f1);
+exports.handler = f2"
+`;
+
+exports[`capturing a reference to a native bound function 1`] = `
+"var v1 = { internal: \\"value\\" };
+const f1 = (_self => function foo() {
+    return this.internal;
+}.bind(_self))(v1);
+const f2 = (f => () => f())(f1);
+exports.handler = f2"
+`;
+
+exports[`capturing a reference to a string 1`] = `
+"const f1 = (foo => () => foo)(\\"hello\\");
+exports.handler = f1"
+`;
+
+exports[`capturing a reference to an array 1`] = `
+"const f1 = (foo => () => foo)([\\"hello\\"]);
+exports.handler = f1"
+`;
+
+exports[`capturing a reference to an array containing a function 1`] = `
+"const f1 = (() => function bar() {
+    return \\"hello\\";
+})();
+const f2 = (foo => () => foo)([f1]);
+exports.handler = f2"
+`;
+
+exports[`value captured multiple times is only emitted once 1`] = `
+"const f1 = (() => function bar() {
+    return \\"hello\\";
+})();
+const f2 = (foo => () => foo)([f1, f1, f1]);
+exports.handler = f2"
+`;
