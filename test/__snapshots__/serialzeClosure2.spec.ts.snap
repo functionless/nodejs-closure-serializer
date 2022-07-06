@@ -1,13 +1,105 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`arrow function nested within a function 1`] = `
-"const v3 = ((native, code) => function Object() { [native, code]; })(undefined, undefined);
-var v2 = { internal: \\"value\\" };
-Object.setPrototypeOf(v2, v3.prototype);
-const v1 = (_self => function foo() {
-    return ((val) => \`\${val} \${this.internal}\`)(\\"hello\\");
-}.bind(_self))(v2);
+exports[`all binding patterns should be considered when detecting free variables 1`] = `
+"const v1 = (free => (
+// argument identifier
+argument, 
+// object binding pattern in argument
+{ objArgument }, 
+// array binding pattern in argument
+[arrayArgument], 
+// nested array binding pattern in argument
+{ a: [arrayInObjectArgument] }, 
+// nested object binding pattern in argument
+{ b: { objectBindingInObjectBindingArgument } }) => {
+    function notHoisted() {
+        return \\"notHoisted\\";
+    }
+    const arrowFunction = () => \\"arrowFunction\\";
+    const functionExpression = function () {
+        return \\"functionExpression\\";
+    };
+    class ClassDeclaration {
+        get() {
+            return \\"ClassDeclaration\\";
+        }
+    }
+    const ClassExpression = class {
+        get() {
+            return \\"ClassExpression\\";
+        }
+    };
+    const NamedClassExpression = class NamedClassExpression {
+        get() {
+            return \\"NamedClassExpression\\";
+        }
+    };
+    // single variable declaration with ts.Identifier
+    const id = \\"id\\";
+    // variable declaration list
+    const a = \\"a\\", b = \\"b\\";
+    // object binding pattern
+    const { objPattern1, a: [arrayPatternInObject], } = {
+        objPattern1: \\"objPattern1\\",
+        a: [\\"arrayPatternInObject\\"],
+    };
+    // object binding patterns in a variable declaration list
+    const { objPatternList1 } = {
+        objPatternList1: \\"objPatternList1\\",
+    }, { objPatternList2 } = {
+        objPatternList2: \\"objPatternList2\\",
+    };
+    // array binding pattern
+    const [arrayPattern1, { objPatternInArray }] = [
+        \\"arrayPattern1\\",
+        { objPatternInArray: \\"objPatternInArray\\" },
+    ];
+    // array binding pattern list
+    const [arrayPatternList1] = [\\"arrayPatternList1\\"], [arrayPatternList2] = [\\"arrayPatternList2\\"];
+    return [
+        argument,
+        objArgument,
+        arrayArgument,
+        arrayInObjectArgument,
+        objectBindingInObjectBindingArgument,
+        free,
+        id,
+        a,
+        b,
+        objPattern1,
+        arrayPatternInObject,
+        objPatternList1,
+        objPatternList2,
+        arrayPattern1,
+        objPatternInArray,
+        arrayPatternList1,
+        arrayPatternList2,
+        notHoisted(),
+        hoisted(),
+        arrowFunction(),
+        functionExpression(),
+        new ClassDeclaration().get(),
+        new ClassExpression().get(),
+        new NamedClassExpression().get(),
+    ];
+    function hoisted() {
+        return \\"hoisted\\";
+    }
+})(\\"free\\");
 exports.handler = v1"
+`;
+
+exports[`call the exports.handler if isFactoryFunction 1`] = `
+"const v1 = (() => function expensiveTask() {
+    return \\"world\\";
+})();
+const v2 = (expensiveTask => () => {
+    const expensive = expensiveTask();
+    return (handleInput) => {
+        return \`\${handleInput} \${expensive}\`;
+    };
+})(v1);
+exports.handler = v2()"
 `;
 
 exports[`capturing a reference to a function 1`] = `

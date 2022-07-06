@@ -23,7 +23,6 @@ const project = new typescript.TypeScriptProject({
   defaultReleaseBranch: "main",
   name: "@functionless/nodejs-closure-serializer",
   deps: [
-    "bindings",
     "normalize-package-data",
     "read-package-tree",
     "semver",
@@ -31,12 +30,10 @@ const project = new typescript.TypeScriptProject({
     "upath",
     "uuid",
     "immutable",
-    "nan",
   ] /* Runtime dependencies of this module. */,
   description:
     "A fork of the nodejs closure serializer in @pulumi/pulumi" /* The description is just a string that helps people understand the purpose of the package. */,
   devDeps: [
-    "@types/bindings",
     "@types/node",
     "@types/normalize-package-data",
     "@types/read-package-tree",

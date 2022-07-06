@@ -191,19 +191,194 @@ test("traditional function prototype class", () => {
   });
 });
 
-async function testCase<F extends (...args: any[]) => any, T>(testCase: {
+test("call the exports.handler if isFactoryFunction", () => {
+  function expensiveTask() {
+    return "world";
+  }
+
+  return testCase({
+    closure: () => {
+      const expensive = expensiveTask();
+
+      return (handleInput: string) => {
+        return `${handleInput} ${expensive}`;
+      };
+    },
+    args: ["hello"],
+    expectResult: "hello world",
+    isFactoryFunction: true,
+  });
+});
+
+test("all binding patterns should be considered when detecting free variables", () => {
+  const free = "free";
+
+  return testCase({
+    closure: (
+      // argument identifier
+      argument: string,
+      // object binding pattern in argument
+      { objArgument }: any,
+      // array binding pattern in argument
+      [arrayArgument]: any,
+      // nested array binding pattern in argument
+      { a: [arrayInObjectArgument] },
+      // nested object binding pattern in argument
+      { b: { objectBindingInObjectBindingArgument } }
+    ) => {
+      function notHoisted() {
+        return "notHoisted";
+      }
+
+      const arrowFunction = () => "arrowFunction";
+
+      const functionExpression = function () {
+        return "functionExpression";
+      };
+
+      class ClassDeclaration {
+        get() {
+          return "ClassDeclaration";
+        }
+      }
+
+      const ClassExpression = class {
+        get() {
+          return "ClassExpression";
+        }
+      };
+
+      const NamedClassExpression = class NamedClassExpression {
+        get() {
+          return "NamedClassExpression";
+        }
+      };
+
+      // single variable declaration with ts.Identifier
+      const id = "id";
+
+      // variable declaration list
+      const a = "a",
+        b = "b";
+
+      // object binding pattern
+      const {
+        objPattern1,
+        a: [arrayPatternInObject],
+      } = {
+        objPattern1: "objPattern1",
+        a: ["arrayPatternInObject"],
+      };
+      // object binding patterns in a variable declaration list
+      const { objPatternList1 } = {
+          objPatternList1: "objPatternList1",
+        },
+        { objPatternList2 } = {
+          objPatternList2: "objPatternList2",
+        };
+
+      // array binding pattern
+      const [arrayPattern1, { objPatternInArray }] = [
+        "arrayPattern1",
+        { objPatternInArray: "objPatternInArray" },
+      ];
+
+      // array binding pattern list
+      const [arrayPatternList1] = ["arrayPatternList1"],
+        [arrayPatternList2] = ["arrayPatternList2"];
+
+      return [
+        argument,
+        objArgument,
+        arrayArgument,
+        arrayInObjectArgument,
+        objectBindingInObjectBindingArgument,
+        free,
+        id,
+        a,
+        b,
+        objPattern1,
+        arrayPatternInObject,
+        objPatternList1,
+        objPatternList2,
+        arrayPattern1,
+        objPatternInArray,
+        arrayPatternList1,
+        arrayPatternList2,
+        notHoisted(),
+        hoisted(),
+        arrowFunction(),
+        functionExpression(),
+        new ClassDeclaration().get(),
+        new ClassExpression().get(),
+        new NamedClassExpression().get(),
+      ];
+
+      function hoisted() {
+        return "hoisted";
+      }
+    },
+    args: [
+      "argument",
+      { objArgument: "objArgument" },
+      ["arrayArgument"],
+      { a: ["arrayInObjectArgument"] },
+      {
+        b: {
+          objectBindingInObjectBindingArgument:
+            "objectBindingInObjectBindingArgument",
+        },
+      },
+    ],
+    expectResult: [
+      "argument",
+      "objArgument",
+      "arrayArgument",
+      "arrayInObjectArgument",
+      "objectBindingInObjectBindingArgument",
+      "free",
+      "id",
+      "a",
+      "b",
+      "objPattern1",
+      "arrayPatternInObject",
+      "objPatternList1",
+      "objPatternList2",
+      "arrayPattern1",
+      "objPatternInArray",
+      "arrayPatternList1",
+      "arrayPatternList2",
+      "notHoisted",
+      "hoisted",
+      "arrowFunction",
+      "functionExpression",
+      "ClassDeclaration",
+      "ClassExpression",
+      "NamedClassExpression",
+    ],
+  });
+});
+
+async function testCase<
+  F extends (...args: any[]) => any,
+  T,
+  IsFactoryFunction extends boolean = false
+>(testCase: {
   closure: F;
-  args?: Parameters<F> extends never[] ? [] : Parameters<F>;
+  isFactoryFunction?: IsFactoryFunction;
+  args?: any;
   expectResult: T;
 }) {
-  const { closure, args, expectResult } = testCase;
-  const serialized = await serializeFunction(closure);
+  const { closure, args, expectResult, isFactoryFunction } = testCase;
+  const serialized = await serializeFunction(closure, {
+    isFactoryFunction,
+  });
   expect(serialized).toMatchSnapshot();
   const fileName = path.join(__dirname, `${uuid.v4()}.js`);
   try {
     fs.writeFileSync(fileName, serialized);
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const js = require(fileName).handler;
+    let js = require(fileName).handler;
     let actualResult: any = js(...(args ?? []));
     if (typeof actualResult?.then === "function") {
       actualResult = await actualResult;

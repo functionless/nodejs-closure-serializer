@@ -3219,7 +3219,7 @@ Function code:
   async function serializeFunctionTest(test: ClosureCase) {
     if (test.func) {
       return await serializeFunction2(test.func, {
-        transformers: test.transformers,
+        preProcess: test.transformers,
       });
     } else if (test.factoryFunc) {
       return await serializeFunction2(test.factoryFunc!, {

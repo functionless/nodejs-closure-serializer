@@ -2,6 +2,7 @@ import inspector from "inspector";
 import util from "util";
 import v8 from "v8";
 import vm from "vm";
+import { Set as iSet } from "immutable";
 import ts from "typescript";
 v8.setFlagsFromString("--allow-natives-syntax");
 
@@ -21,11 +22,25 @@ export interface SerializeFunctionArgs {
    * serialized.
    */
   preSerializeValue?: (value: any) => any;
+
+  /**
+   * If this is a function which, when invoked, will produce the actual entrypoint function.
+   * Useful for when serializing a function that has high startup cost that only wants to be
+   * run once. The signature of this function should be:  () => (provider_handler_args...) => provider_result
+   *
+   * This will then be emitted as: `exports.[exportName] = serialized_func_name();`
+   *
+   * In other words, the function will be invoked (once) and the resulting inner function will
+   * be what is exported.
+   *
+   * @default false
+   */
+  isFactoryFunction?: boolean;
 }
 
-interface CapturedValue {
+interface FreeVariable {
   /**
-   * Name of the captured value passed in to the closure initialization.
+   * Name of the free variable passed in to the closure initialization.
    *
    * ```ts
    * function f1 = (function(name) {
@@ -33,7 +48,7 @@ interface CapturedValue {
    * })
    * ```
    */
-  lexicalName: string;
+  variableName: string;
   /**
    * A {@link ts.Expression} for the value passed into the closure initialization.
    *
@@ -42,7 +57,7 @@ interface CapturedValue {
    * //                             ^ outerNode
    * ```
    */
-  outerNode: ts.Expression;
+  outerExpr: ts.Expression;
 }
 
 export async function serializeFunction(
@@ -83,7 +98,9 @@ export async function serializeFunction(
 
   const handler = await serializeClosure(func);
 
-  return `${statements.join("\n")}\nexports.handler = ${handler.text}`;
+  return `${statements.join("\n")}\nexports.handler = ${handler.text}${
+    args.isFactoryFunction ? "()" : ""
+  }`;
 
   /**
    * Serialize a function, {@link func}, write a Statement to the closure and return
@@ -140,8 +157,6 @@ export async function serializeFunction(
         }
       }
 
-      const substitutesAsync: Promise<CapturedValue>[] = [];
-
       let funcAST = getClosure(parsedCode);
 
       if (funcAST === undefined) {
@@ -162,40 +177,94 @@ export async function serializeFunction(
         ts.forEachChild(node, walk);
       });
 
-      funcAST = transform(funcAST, [
-        (ctx) =>
-          function visit(node: ts.Node): ts.Node {
-            if (isThisExpression(node)) {
-            } else if (isSuperExpression(node)) {
-            } else if (
-              ts.isIdentifier(node) &&
-              isFreeVariable(node, funcAST!)
-            ) {
-              substitutesAsync.push(
-                (async () => {
-                  const val = await getFreeVariable(func, node.text, false);
+      const freeVariablesAsync: Promise<FreeVariable>[] = [];
 
-                  return {
-                    lexicalName: node.text,
-                    outerNode: await serializeValue(val, ids),
-                  };
-                })()
-              );
+      // serialize all free variables
+      visit(funcAST);
+
+      function visit(
+        /**
+         * The current node being visited.
+         */
+        node: ts.Node,
+        /**
+         * A Set of all names known at this point in the AST.
+         */
+        lexicalScope: iSet<string> = iSet()
+      ): void {
+        if (
+          ts.isFunctionDeclaration(node) ||
+          ts.isFunctionExpression(node) ||
+          ts.isArrowFunction(node) ||
+          ts.isConstructorDeclaration(node)
+        ) {
+          return forEachChild(
+            node,
+            appendScope(lexicalScope, [
+              node.name && ts.isIdentifier(node.name) ? [node.name.text] : [],
+              node.parameters.flatMap(getBindingNames),
+            ])
+          );
+        } else if (ts.isBlock(node)) {
+          // first extract all hoisted functions
+          lexicalScope = appendScope(lexicalScope, getBindingNames(node));
+          for (const stmt of node.statements) {
+            visit(stmt, lexicalScope);
+            if (ts.isVariableStatement(stmt) || ts.isClassDeclaration(stmt)) {
+              // update the current lexical scope with the variable declarations
+              lexicalScope = appendScope(lexicalScope, getBindingNames(stmt));
             }
-            return ts.visitEachChild(node, visit, ctx);
-          },
-      ]);
+          }
+          return;
+        } else if (ts.isVariableDeclaration(node)) {
+          return forEachChild(
+            node,
+            appendScope(lexicalScope, getBindingNames(node.name))
+          );
+        } else if (ts.isVariableDeclarationList(node)) {
+          for (const variableDecl of node.declarations) {
+            visit(
+              variableDecl,
+              appendScope(lexicalScope, getBindingNames(variableDecl.name))
+            );
+          }
+          return;
+        } else if (isFreeVariable(node, lexicalScope)) {
+          if (node.text === "a") {
+            isFreeVariable(node, lexicalScope);
+          }
+          freeVariablesAsync.push(
+            (async () => {
+              const val = await getFreeVariable(func, node.text, false);
 
-      const substitutes = await Promise.all(substitutesAsync);
+              return {
+                variableName: node.text,
+                outerExpr: await serializeValue(val, ids),
+              };
+            })()
+          );
+        }
+
+        return forEachChild(node, lexicalScope);
+
+        function forEachChild(node: ts.Node, lexicalScope: iSet<string>) {
+          ts.forEachChild(node, (n) => visit(n, lexicalScope));
+        }
+
+        function appendScope(
+          lexicalScope: iSet<string>,
+          names: string[] | string[][]
+        ) {
+          return names
+            .flat()
+            .reduce((scope, name) => scope.add(name), lexicalScope);
+        }
+      }
+
+      const freeVariables = await Promise.all(freeVariablesAsync);
 
       if (args.postProcess?.length) {
         funcAST = transform(funcAST, args.postProcess);
-      }
-
-      if (args.postProcess) {
-        // re-write the closure, pointing references to captured variables to serialized values
-        parsedCode = ts.transform(parsedCode, args.postProcess)
-          .transformed[0] as ts.SourceFile;
       }
 
       // unique name of the generated closure
@@ -207,7 +276,9 @@ export async function serializeFunction(
           await makeFunctionStatement(
             parsedCode.statements[0],
             closureName,
-            new Map(substitutes.map((sub) => [sub.lexicalName, sub.outerNode]))
+            new Map(
+              freeVariables.map((sub) => [sub.variableName, sub.outerExpr])
+            )
           ),
         ],
         parsedCode
@@ -522,83 +593,144 @@ function getClosure(
     : undefined;
 }
 
+/**
+ * Determines if a ts.Identifier in a Class or Function points to a free variable (i.e. a value outside of its scope).
+ */
 function isFreeVariable(
-  node: ts.Identifier,
-  scope:
-    | ts.ClassDeclaration
-    | ts.ClassExpression
-    | ts.FunctionDeclaration
-    | ts.FunctionExpression
-    | ts.ArrowFunction
-): boolean {
-  const parent = node.parent;
-
-  if (ts.isExpressionWithTypeArguments(parent)) {
+  node: ts.Node,
+  lexicalScope: iSet<string>
+): node is ts.Identifier {
+  if (!ts.isIdentifier(node)) {
     return false;
   }
-  return (
-    (!(
-      ts.isFunctionDeclaration(parent) ||
+  const parent = node.parent;
+
+  if (
+    /**
+     * Used in the extends clause.
+     * ```ts
+     * class A extends B {
+     *              // ^ this is not a free variable
+     * }
+     * class A extends B.C {
+     *              // ^ this is not a free variable
+     * }
+     * class A extends B[C] {
+     *              // ^ this is not a free variable
+     * }
+     * ```
+     *
+     * For some of these cases, it would be "proper" to consider them a free variable, but NodeJS's [[Scopes]]
+     * only contains references to variables captured by the Function or Class's constructor. To capture
+     * the extends clause, we will instead serialize Object.getPrototypeOf(A) and pass that in to the class.
+     * This is better anyway as it it is always possible to overwrite the `extends` clause with `Object.setPrototypeOf`.
+     */
+    ts.isExpressionWithTypeArguments(parent)
+  ) {
+    // this is an Identifier in an extends clause
+    return false;
+  } else if (ts.isBindingElement(parent)) {
+    return false;
+  } else if (
+    /**
+     * the ID is the name of the Function, Class, Method or Parameter
+     *
+     * ```ts
+     * function foo() {
+     *        // ^ this is not a free variable
+     * }
+     *
+     * function foo(arg) {
+     *            // ^ this is not a free variable
+     * }
+     *
+     * class A {
+     *    // ^ this is not a free variable
+     *
+     *    foo() {}
+     *  // ^ this is not a free variable
+     * }
+     * ```
+     */
+    (ts.isFunctionDeclaration(parent) ||
       ts.isFunctionExpression(parent) ||
       ts.isClassDeclaration(parent) ||
       ts.isClassExpression(parent) ||
       ts.isMethodDeclaration(parent) ||
-      ts.isParameter(parent) ||
-      ts.isPropertyAccessExpression(parent) ||
-      ts.isPropertyAccessChain(parent)
-    ) ||
-      parent.name !== node) &&
-    !isInScope(node.text, parent, scope)
-  );
-}
-
-function isInScope(
-  id: string,
-  parent: ts.Node | undefined,
-  scope: ts.Node
-): boolean {
-  if (parent === undefined || ts.isSourceFile(parent)) {
+      ts.isParameter(parent)) &&
+    parent.name === node
+  ) {
     return false;
   } else if (
-    ts.isBlock(parent) &&
-    parent.statements.find(
-      (stmt) =>
-        ts.isFunctionDeclaration(stmt) &&
-        stmt.name &&
-        ts.isIdentifier(stmt.name) &&
-        stmt.name.text === id
-    ) !== undefined
+    /**
+     * The ID is the `name` property in a PropertyAccessExpression.
+     * ```ts
+     * const a = b.c;
+     *          // ^ not a free variable
+     * ```
+     */
+    (ts.isPropertyAccessExpression(parent) ||
+      ts.isPropertyAccessChain(parent)) &&
+    parent.name === node
   ) {
-    // there exists a function declaration with the name, id, within a surrounding block
-    // since they will be hoisted, we consider this in scope
-    return true;
+    return false;
   } else if (
-    (ts.isFunctionLike(parent) ||
-      ts.isMethodDeclaration(parent) ||
-      ts.isConstructorDeclaration(parent)) &&
-    parent.parameters
-      .map((param) => param.name)
-      .find(function findName(
-        binding: ts.BindingName | ts.BindingElement | ts.ArrayBindingElement
-      ): boolean {
-        parent;
-        if (ts.isIdentifier(binding)) {
-          return binding.text === id;
-        } else if (ts.isBindingElement(binding)) {
-          return findName(binding.name);
-        } else if (ts.isObjectBindingPattern(binding)) {
-          return binding.elements.find(findName) !== undefined;
-        } else if (ts.isArrayBindingPattern(binding)) {
-          return binding.elements.find(findName) !== undefined;
-        } else {
-          return false;
-        }
-      }) !== undefined
+    /**
+     * The ID is contained within a VariableDeclaration's BindingName - as an Identifier, ObjectBindingPattern or ArrayBindingPattern.
+     * ```ts
+     * function foo() {
+     *   const a = ?;
+     *      // ^ not a free variable
+     *   const { a } = ?;
+     *        // ^ not a free variable
+     *   const [ a ] = ?;
+     *        // ^ not a free variable
+     * }
+     * ```
+     */
+    ts.isVariableDeclaration(parent) &&
+    bindingHasId(parent.name)
   ) {
-    return true;
+    return false;
   }
+  /**
+   * Finally, this is a ts.Identifier that is referencing a value. Let's now check and see if the value it
+   * references is inside or outside of the function scope.
+   *
+   * ```ts
+   * const a = ?;
+   * function foo() {
+   *   return a;
+   *       // ^ free variable
+   * }
+   *
+   * function bar() {
+   *   const a = ?;
+   *
+   *   return a;
+   *       // ^ not a free variable
+   * }
+   * ```
+   */
+  return !lexicalScope.has(node.text);
 
-  return isInScope(id, parent.parent, scope);
+  function bindingHasId(
+    binding: ts.BindingName | ts.BindingElement | ts.OmittedExpression
+  ): boolean {
+    if (ts.isOmittedExpression(binding)) {
+      return false;
+    } else if (ts.isBindingElement(binding)) {
+      return bindingHasId(binding.name);
+    } else if (ts.isIdentifier(binding)) {
+      return binding === node;
+    } else if (
+      ts.isObjectBindingPattern(binding) ||
+      ts.isArrayBindingPattern(binding)
+    ) {
+      return binding.elements.find(bindingHasId) !== undefined;
+    }
+    return false;
+  }
 }
 
 function isNativeFunction(funcString: string) {
@@ -644,69 +776,58 @@ function createParameterDeclaration(name: string) {
   );
 }
 
-async function getFunctionId(
-  func: Function
-): Promise<inspector.Runtime.RemoteObjectId> {
-  // In order to get information about an object, we need to put it in a well known location so
-  // that we can call Runtime.evaluate and find it.  To do this, we use a special map on the
-  // 'global' object of a vm context only used for this purpose, and map from a unique-id to that
-  // object.  We then call Runtime.evaluate with an expression that then points to that unique-id
-  // in that global object.  The runtime will then find the object and give us back an internal id
-  // for it.  We can then query for information about the object through that internal id.
-  //
-  // Note: the reason for the mapping object and the unique-id we create is so that we don't run
-  // into any issues when being called asynchronously.  We don't want to place the object in a
-  // location that might be overwritten by another call while we're asynchronously waiting for our
-  // original call to complete.
-
-  const session = <EvaluationSession>await inspectorSession;
-  const post = util.promisify(session.post);
-
-  // Place the function in a unique location
-  const context = await inflightContext;
-  const currentFunctionName = "id" + context.currentFunctionId++;
-  context.functions[currentFunctionName] = func;
-  const contextId = context.contextId;
-  const expression = `functions.${currentFunctionName}`;
-
-  try {
-    const retType = await post.call(session, "Runtime.evaluate", {
-      contextId,
-      expression,
-    });
-
-    if (retType.exceptionDetails) {
-      throw new Error(
-        `Error calling "Runtime.evaluate(${expression})" on context ${contextId}: ` +
-          retType.exceptionDetails.text
-      );
-    }
-
-    const remoteObject = retType.result;
-    if (remoteObject.type !== "function") {
-      throw new Error(
-        "Remote object was not 'function': " + JSON.stringify(remoteObject)
-      );
-    }
-
-    if (!remoteObject.objectId) {
-      throw new Error(
-        "Remote function does not have 'objectId': " +
-          JSON.stringify(remoteObject)
-      );
-    }
-
-    return remoteObject.objectId;
-  } finally {
-    delete context.functions[currentFunctionName];
+function getBindingNames(
+  node:
+    | ts.ArrayBindingElement
+    | ts.BindingElement
+    | ts.BindingName
+    | ts.BindingPattern
+    | ts.ClassDeclaration
+    | ts.ClassExpression
+    | ts.ObjectBindingPattern
+    | ts.ParameterDeclaration
+    | ts.VariableDeclaration
+    | ts.VariableDeclarationList
+    | ts.VariableStatement
+    | ts.Block
+    | ts.FunctionDeclaration
+): string[] {
+  if (ts.isBlock(node)) {
+    // extract all lexical scopes
+    return node.statements.flatMap((stmt) =>
+      ts.isFunctionDeclaration(stmt) && stmt.name ? [stmt.name.text] : []
+    );
+  } else if (
+    ts.isFunctionDeclaration(node) ||
+    ts.isClassDeclaration(node) ||
+    ts.isClassExpression(node)
+  ) {
+    return node.name ? [node.name.text] : [];
+  } else if (ts.isParameter(node)) {
+    return getBindingNames(node.name);
+  } else if (ts.isIdentifier(node)) {
+    return [node.text];
+  } else if (
+    ts.isArrayBindingPattern(node) ||
+    ts.isObjectBindingPattern(node)
+  ) {
+    return node.elements.flatMap(getBindingNames);
+  } else if (ts.isOmittedExpression(node)) {
+    return [];
+  } else if (ts.isBindingElement(node)) {
+    return getBindingNames(node.name);
+  } else if (ts.isVariableStatement(node)) {
+    return getBindingNames(node.declarationList);
+  } else if (ts.isVariableDeclarationList(node)) {
+    return node.declarations.flatMap(getBindingNames);
+  } else if (ts.isVariableDeclaration(node)) {
+    return getBindingNames(node.name);
   }
+  return assertNever(node);
 }
 
-export interface FunctionInternals {
-  boundThis?: any;
-  boundArgs?: any;
-  targetFunction?: any;
-  prototype?: any;
+function assertNever(a: never): never {
+  throw new Error(`unreachable code block reached`);
 }
 
 async function getFreeVariable(
@@ -766,6 +887,64 @@ async function getFreeVariable(
   }
 
   return undefined;
+}
+
+async function getFunctionId(
+  func: Function
+): Promise<inspector.Runtime.RemoteObjectId> {
+  // In order to get information about an object, we need to put it in a well known location so
+  // that we can call Runtime.evaluate and find it.  To do this, we use a special map on the
+  // 'global' object of a vm context only used for this purpose, and map from a unique-id to that
+  // object.  We then call Runtime.evaluate with an expression that then points to that unique-id
+  // in that global object.  The runtime will then find the object and give us back an internal id
+  // for it.  We can then query for information about the object through that internal id.
+  //
+  // Note: the reason for the mapping object and the unique-id we create is so that we don't run
+  // into any issues when being called asynchronously.  We don't want to place the object in a
+  // location that might be overwritten by another call while we're asynchronously waiting for our
+  // original call to complete.
+
+  const session = <EvaluationSession>await inspectorSession;
+  const post = util.promisify(session.post);
+
+  // Place the function in a unique location
+  const context = await inflightContext;
+  const currentFunctionName = "id" + context.currentFunctionId++;
+  context.functions[currentFunctionName] = func;
+  const contextId = context.contextId;
+  const expression = `functions.${currentFunctionName}`;
+
+  try {
+    const retType = await post.call(session, "Runtime.evaluate", {
+      contextId,
+      expression,
+    });
+
+    if (retType.exceptionDetails) {
+      throw new Error(
+        `Error calling "Runtime.evaluate(${expression})" on context ${contextId}: ` +
+          retType.exceptionDetails.text
+      );
+    }
+
+    const remoteObject = retType.result;
+    if (remoteObject.type !== "function") {
+      throw new Error(
+        "Remote object was not 'function': " + JSON.stringify(remoteObject)
+      );
+    }
+
+    if (!remoteObject.objectId) {
+      throw new Error(
+        "Remote function does not have 'objectId': " +
+          JSON.stringify(remoteObject)
+      );
+    }
+
+    return remoteObject.objectId;
+  } finally {
+    delete context.functions[currentFunctionName];
+  }
 }
 
 async function getValueForObjectId(
@@ -846,6 +1025,13 @@ async function inspectProperties(
   };
 }
 
+export interface FunctionInternals {
+  boundThis?: any;
+  boundArgs?: any;
+  targetFunction?: any;
+  prototype?: any;
+}
+
 /**
  * Extracts the `[[BoundThis]]`, `[[BoundArgs]], `[[TargetFunction]] and `[[Prototype]]` internal
  * properties from a bound function, i.e. a function created with `.bind`:
@@ -923,6 +1109,7 @@ interface InflightContext {
   calls: Record<string, any>;
   currentCallId: number;
 }
+
 // Isolated singleton context accessible from the inspector.
 // Used instead of `global` object to support executions with multiple V8 vm contexts as, e.g., done by Jest.
 const inflightContext = createInflightContext();
@@ -955,30 +1142,34 @@ async function createInflightContext(): Promise<InflightContext> {
 // We want to call util.promisify on inspector.Session.post. However, due to all the overloads of
 // that method, promisify gets confused.  To prevent this, we cast our session object down to an
 // interface containing only the single overload we care about.
-type PostSession<TMethod, TParams, TReturn> = {
+interface PostSession<TMethod, TParams, TReturn> {
   post(
     method: TMethod,
     params?: TParams,
     callback?: (err: Error | null, params: TReturn) => void
   ): void;
-};
+}
 
-type EvaluationSession = PostSession<
-  "Runtime.evaluate",
-  inspector.Runtime.EvaluateParameterType,
-  inspector.Runtime.EvaluateReturnType
->;
-type GetPropertiesSession = PostSession<
-  "Runtime.getProperties",
-  inspector.Runtime.GetPropertiesParameterType,
-  inspector.Runtime.GetPropertiesReturnType
->;
-type CallFunctionSession = PostSession<
-  "Runtime.callFunctionOn",
-  inspector.Runtime.CallFunctionOnParameterType,
-  inspector.Runtime.CallFunctionOnReturnType
->;
-type ContextSession = {
+interface EvaluationSession
+  extends PostSession<
+    "Runtime.evaluate",
+    inspector.Runtime.EvaluateParameterType,
+    inspector.Runtime.EvaluateReturnType
+  > {}
+
+interface GetPropertiesSession
+  extends PostSession<
+    "Runtime.getProperties",
+    inspector.Runtime.GetPropertiesParameterType,
+    inspector.Runtime.GetPropertiesReturnType
+  > {}
+interface CallFunctionSession
+  extends PostSession<
+    "Runtime.callFunctionOn",
+    inspector.Runtime.CallFunctionOnParameterType,
+    inspector.Runtime.CallFunctionOnReturnType
+  > {}
+interface ContextSession {
   post(
     method: "Runtime.disable" | "Runtime.enable",
     callback?: (err: Error | null) => void
@@ -989,7 +1180,7 @@ type ContextSession = {
       message: inspector.InspectorNotification<inspector.Runtime.ExecutionContextCreatedEventDataType>
     ) => void
   ): void;
-};
+}
 
 // function getPropertyAccessChainRoot(
 //   node: ts.PropertyAccessExpression | ts.PropertyAccessChain
