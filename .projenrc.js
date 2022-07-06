@@ -23,28 +23,33 @@ const project = new typescript.TypeScriptProject({
   defaultReleaseBranch: "main",
   name: "@functionless/nodejs-closure-serializer",
   deps: [
+    "bindings",
     "normalize-package-data",
     "read-package-tree",
     "semver",
     "ts-node",
     "upath",
+    "uuid",
     "immutable",
+    "nan",
   ] /* Runtime dependencies of this module. */,
   description:
     "A fork of the nodejs closure serializer in @pulumi/pulumi" /* The description is just a string that helps people understand the purpose of the package. */,
   devDeps: [
+    "@types/bindings",
     "@types/node",
     "@types/normalize-package-data",
     "@types/read-package-tree",
     "@types/semver",
+    "@types/uuid",
     "@typescript-eslint/eslint-plugin",
     "@typescript-eslint/parser",
-    "eslint",
+    "aws-serverless-express",
     "eslint-plugin-header",
     "eslint-plugin-import",
-    "mockpackage@file:test/mockpackage",
-    "aws-serverless-express",
+    "eslint",
     "express",
+    "mockpackage@file:test/mockpackage",
   ] /* Build dependencies for this module. */,
   peerDeps: ["typescript"],
   // packageName: undefined,  /* The "name" in package.json. */
@@ -79,7 +84,11 @@ const project = new typescript.TypeScriptProject({
   prettier: true,
   prettierOptions: {},
 });
+project.package.addField("gypfile", true);
 project.addGitIgnore("/test-generated-closures/");
+project.addGitIgnore("/build");
+project.addPackageIgnore("/build/");
+project.addPackageIgnore("!/native/");
 
 new GitHooksPreCommitComponent(project);
 

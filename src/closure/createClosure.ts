@@ -511,7 +511,7 @@ async function analyzeFunctionInfoAsync(
         continue;
       }
 
-      const funcProp = await getOwnPropertyAsync(func, descriptor);
+      const funcProp = getOwnPropertyAsync(func, descriptor);
 
       // We don't need to emit code to serialize this function's .prototype object
       // unless that .prototype object was actually changed.
@@ -703,14 +703,14 @@ async function analyzeFunctionInfoAsync(
         descriptor.name !== "prototype"
       ) {
         // static method.
-        const classProp = await getOwnPropertyAsync(func, descriptor);
+        const classProp = getOwnPropertyAsync(func, descriptor);
         addIfFunction(classProp, /*isStatic*/ true);
       }
     }
 
     for (const descriptor of await getOwnPropertyDescriptors(func.prototype)) {
       // instance method.
-      const classProp = await getOwnPropertyAsync(func.prototype, descriptor);
+      const classProp = getOwnPropertyAsync(func.prototype, descriptor);
       addIfFunction(classProp, /*isStatic*/ false);
     }
 
@@ -1157,7 +1157,7 @@ async function getOrCreateEntryAsync(
       for (const descriptor of await getOwnPropertyDescriptors(obj)) {
         if (descriptor.name !== undefined && descriptor.name !== "length") {
           entry.array[<any>descriptor.name] = await getOrCreateEntryAsync(
-            await getOwnPropertyAsync(obj, descriptor),
+            getOwnPropertyAsync(obj, descriptor),
             context,
             serializeArgs,
             logInfo
@@ -1247,7 +1247,7 @@ async function getOrCreateEntryAsync(
         serializeArgs,
         logInfo
       );
-      const prop = await getOwnPropertyAsync(obj, descriptor);
+      const prop = getOwnPropertyAsync(obj, descriptor);
       const valEntry = await getOrCreateEntryAsync(
         prop,
         context,
@@ -1567,7 +1567,8 @@ function getBuiltInModules(): Promise<Map<any, string>> {
       "repl",
       "stream",
       "string_decoder",
-      /* "sys" deprecated ,*/ "timers",
+      /* "sys" deprecated ,*/
+      "timers",
       "tls",
       "tty",
       "url",
@@ -1681,10 +1682,10 @@ async function getOwnPropertyDescriptors(
   return result;
 }
 
-async function getOwnPropertyAsync(
+function getOwnPropertyAsync(
   obj: any,
   descriptor: ClosurePropertyDescriptor
-): Promise<any> {
+): any {
   return descriptor.get || descriptor.set
     ? undefined
     : obj[getNameOrSymbol(descriptor)];

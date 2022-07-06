@@ -1,52 +1,136 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`arrow function nested within a function 1`] = `
-"var v1 = { internal: \\"value\\" };
-const f1 = (_self => function foo() {
+"const v3 = ((native, code) => function Object() { [native, code]; })(undefined, undefined);
+var v2 = { internal: \\"value\\" };
+Object.setPrototypeOf(v2, v3.prototype);
+const v1 = (_self => function foo() {
     return ((val) => \`\${val} \${this.internal}\`)(\\"hello\\");
-}.bind(_self))(v1);
-exports.handler = f1"
+}.bind(_self))(v2);
+exports.handler = v1"
 `;
 
 exports[`capturing a reference to a function 1`] = `
-"const f1 = (() => function foo() {
+"const v1 = (() => function foo() {
     return \\"hello\\";
 })();
-const f2 = (foo => () => foo())(f1);
-exports.handler = f2"
+const v2 = (foo => () => foo())(v1);
+exports.handler = v2"
 `;
 
 exports[`capturing a reference to a native bound function 1`] = `
-"var v1 = { internal: \\"value\\" };
-const f1 = (_self => function foo() {
+"const v4 = ((native, code) => function Object() { [native, code]; })(undefined, undefined);
+var v3 = { internal: \\"value\\" };
+Object.setPrototypeOf(v3, v4.prototype);
+const v2 = (_self => function foo() {
     return this.internal;
-}.bind(_self))(v1);
-const f2 = (f => () => f())(f1);
-exports.handler = f2"
+}.bind(_self))(v3);
+const v5 = (f => () => f())(v2);
+exports.handler = v5"
 `;
 
 exports[`capturing a reference to a string 1`] = `
-"const f1 = (foo => () => foo)(\\"hello\\");
-exports.handler = f1"
+"const v1 = (foo => () => foo)(\\"hello\\");
+exports.handler = v1"
 `;
 
 exports[`capturing a reference to an array 1`] = `
-"const f1 = (foo => () => foo)([\\"hello\\"]);
-exports.handler = f1"
+"const v2 = (foo => () => foo)([\\"hello\\"]);
+exports.handler = v2"
 `;
 
 exports[`capturing a reference to an array containing a function 1`] = `
-"const f1 = (() => function bar() {
+"const v2 = (() => function bar() {
     return \\"hello\\";
 })();
-const f2 = (foo => () => foo)([f1]);
-exports.handler = f2"
+const v3 = (foo => () => foo)([v2]);
+exports.handler = v3"
+`;
+
+exports[`class method 1`] = `
+"const v2 = (() => class Foo {
+    constructor(internal) {
+        this.internal = internal;
+    }
+    foo() {
+        return this.internal;
+    }
+})();
+var v1 = { internal: \\"hello\\" };
+Object.setPrototypeOf(v1, v2.prototype);
+const v3 = (foo => () => foo.foo())(v1);
+exports.handler = v3"
+`;
+
+exports[`class mix-in 1`] = `
+"const v3 = (() => class {
+    constructor(internal) {
+        this.internal = internal;
+    }
+})();
+const v2 = (Base => class extends Base {
+    constructor(internal) {
+        super(internal);
+    }
+    foo() {
+        return this.internal;
+    }
+})(v3);
+var v1 = { internal: \\"value\\" };
+Object.setPrototypeOf(v1, v2.prototype);
+const v4 = (a => () => a.foo())(v1);
+exports.handler = v4"
+`;
+
+exports[`class with prototype swapped 1`] = `
+"const v2 = (() => class B {
+    constructor(internal) {
+        this.internal = internal;
+    }
+    foo() {
+        return \`\${this.internal} b\`;
+    }
+})();
+const v1 = (A => class C extends A {
+})(v2);
+const v3 = (C => () => new C(\\"value\\").foo())(v1);
+exports.handler = v3"
+`;
+
+exports[`super class method 1`] = `
+"const v3 = (() => class Foo {
+    constructor(internal) {
+        this.internal = internal;
+    }
+    foo() {
+        return this.internal;
+    }
+})();
+const v2 = (Foo => class Bar extends Foo {
+})(v3);
+var v1 = { internal: \\"hello\\" };
+Object.setPrototypeOf(v1, v2.prototype);
+const v4 = (foo => () => foo.foo())(v1);
+exports.handler = v4"
+`;
+
+exports[`traditional function prototype class 1`] = `
+"const v3 = (() => function Animal(noise) {
+    this.noise = noise;
+})();
+var v2 = { noise: \\"bork\\" };
+Object.setPrototypeOf(v2, v3.prototype);
+const v1 = (Animal => function Dog(noise) {
+    Animal.call(this, \`bark \${noise}\`);
+})(v3);
+const v4 = ((Dog, animal) => () => [new Dog(\\"woof\\").speak(), animal.speak()])(v1, v2);
+exports.handler = v4"
 `;
 
 exports[`value captured multiple times is only emitted once 1`] = `
-"const f1 = (() => function bar() {
+"const v2 = (() => function bar() {
     return \\"hello\\";
 })();
-const f2 = (foo => () => foo)([f1, f1, f1]);
-exports.handler = f2"
+const v3 = (foo => () => foo)([v2, v2, v2]);
+exports.handler = v3"
 `;

@@ -1,6 +1,10 @@
 {
   "dependencies": [
     {
+      "name": "@types/bindings",
+      "type": "build"
+    },
+    {
       "name": "@types/jest",
       "type": "build"
     },
@@ -19,6 +23,10 @@
     },
     {
       "name": "@types/semver",
+      "type": "build"
+    },
+    {
+      "name": "@types/uuid",
       "type": "build"
     },
     {
@@ -119,7 +127,15 @@
       "type": "peer"
     },
     {
+      "name": "bindings",
+      "type": "runtime"
+    },
+    {
       "name": "immutable",
+      "type": "runtime"
+    },
+    {
+      "name": "nan",
       "type": "runtime"
     },
     {
@@ -140,6 +156,10 @@
     },
     {
       "name": "upath",
+      "type": "runtime"
+    },
+    {
+      "name": "uuid",
       "type": "runtime"
     }
   ],
