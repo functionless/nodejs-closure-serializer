@@ -3151,6 +3151,7 @@ Function code:
         if (test.pre) {
           test.pre();
         }
+        return;
 
         try {
           // Invoke the test case.

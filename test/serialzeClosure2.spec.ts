@@ -1,7 +1,10 @@
 import fs from "fs";
 import path from "path";
 import * as uuid from "uuid";
-import { serializeFunction } from "../src/closure/serializeClosure2";
+import {
+  serializeFunction,
+  SerializeFunctionArgs,
+} from "../src/closure/serializeClosure2";
 
 test("capturing a reference to a function", () => {
   function foo() {
@@ -75,6 +78,69 @@ test("capturing a reference to a native bound function", () => {
   return testCase({
     closure: () => f(),
     expectResult: "value",
+  });
+});
+
+test("capturing a reference to a native bound method", () => {
+  class F {
+    internal: string;
+    foo(a, { b }, [c]) {
+      return [this.internal, a, b, c];
+    }
+  }
+
+  const f = new F();
+  const func = f.foo.bind({
+    internal: "value",
+  });
+
+  return testCase({
+    closure: () => func("a", { b: "b" }, ["c"]),
+    expectResult: ["value", "a", "b", "c"],
+  });
+});
+
+test("capturing a reference to a native bound async method", () => {
+  class F {
+    internal: string;
+    async foo() {
+      return this.internal;
+    }
+  }
+
+  const f = new F();
+  const func = f.foo.bind({
+    internal: "value",
+  });
+
+  return testCase({
+    closure: () => func(),
+    expectResult: "value",
+  });
+});
+
+test("capturing a reference to a native bound generator method", () => {
+  class F {
+    i: number = 0;
+    *foo() {
+      while ((this.i += 1) <= 1) {
+        yield "hello";
+      }
+    }
+  }
+
+  const f = new F();
+  const func = f.foo.bind(f);
+
+  return testCase({
+    closure: () => func(),
+    expectResult: (generator: any) => {
+      const values: any[] = [];
+      for (const i of generator) {
+        values.push(i);
+      }
+      expect(values).toEqual(["hello"]);
+    },
   });
 });
 
@@ -213,6 +279,8 @@ test("call the exports.handler if isFactoryFunction", () => {
 test("all binding patterns should be considered when detecting free variables", () => {
   const free = "free";
 
+  class FreeClass {}
+
   return testCase({
     closure: (
       // argument identifier
@@ -236,23 +304,42 @@ test("all binding patterns should be considered when detecting free variables", 
         return "functionExpression";
       };
 
-      class ClassDeclaration {
+      class ClassDeclaration extends FreeClass {
+        //                              ^ free
+
+        constructor(readonly text: string = "ClassDeclaration") {
+          super();
+        }
+
         get() {
           return "ClassDeclaration";
         }
       }
 
-      const ClassExpression = class {
+      const ClassExpression = class extends FreeClass {
+        //                                    ^ free
         get() {
           return "ClassExpression";
         }
       };
 
-      const NamedClassExpression = class NamedClassExpression {
+      const NamedClassExpression = class NamedClassExpression extends FreeClass {
+        //                                                              ^ free
         get() {
           return "NamedClassExpression";
         }
       };
+
+      function SuperClass(text: string) {
+        this.text = text;
+      }
+      SuperClass.prototype.get = function () {
+        return this.text;
+      };
+      function TraditionalClass() {
+        SuperClass.call(this, "TraditionalClass");
+      }
+      Object.setPrototypeOf(TraditionalClass.prototype, SuperClass.prototype);
 
       // single variable declaration with ts.Identifier
       const id = "id";
@@ -312,6 +399,7 @@ test("all binding patterns should be considered when detecting free variables", 
         new ClassDeclaration().get(),
         new ClassExpression().get(),
         new NamedClassExpression().get(),
+        new TraditionalClass().get(),
       ];
 
       function hoisted() {
@@ -355,7 +443,138 @@ test("all binding patterns should be considered when detecting free variables", 
       "ClassDeclaration",
       "ClassExpression",
       "NamedClassExpression",
+      "TraditionalClass",
     ],
+  });
+});
+
+test("should not capture global values as free variables", () => {
+  return testCase({
+    closure: () => {
+      // Object.getOwnPropertyNames(global).sort().join(';\n')
+
+      // $0;
+      // $1;
+      // $2;
+      // $3;
+      // $4;
+      // $_;
+      AbortController;
+      AbortSignal;
+      // AggregateError;
+      Array;
+      ArrayBuffer;
+      Atomics;
+      BigInt;
+      BigInt64Array;
+      BigUint64Array;
+      Boolean;
+      Buffer;
+      DataView;
+      Date;
+      Error;
+      EvalError;
+      Event;
+      EventTarget;
+      // FinalizationRegistry;
+      Float32Array;
+      Float64Array;
+      Function;
+      Infinity;
+      Int16Array;
+      Int32Array;
+      Int8Array;
+      Intl;
+      JSON;
+      Map;
+      Math;
+      NaN;
+      Number;
+      Object;
+      Promise;
+      Proxy;
+      RangeError;
+      ReferenceError;
+      Reflect;
+      RegExp;
+      Set;
+      SharedArrayBuffer;
+      String;
+      Symbol;
+      SyntaxError;
+      TextDecoder;
+      TextEncoder;
+      TypeError;
+      URIError;
+      URL;
+      URLSearchParams;
+      Uint16Array;
+      Uint32Array;
+      Uint8Array;
+      Uint8ClampedArray;
+      WeakMap;
+      // WeakRef;
+      WeakSet;
+      WebAssembly;
+      // afterAll;
+      // afterEach;
+      atob;
+      // beforeAll;
+      // beforeEach;
+      btoa;
+      // clear;
+      clearImmediate;
+      clearInterval;
+      clearTimeout;
+      console;
+      // copy;
+      // debug;
+      decodeURI;
+      decodeURIComponent;
+      describe;
+      // dir;
+      // dirxml;
+      encodeURI;
+      encodeURIComponent;
+      escape;
+      eval;
+      // expect;
+      // fdescribe;
+      // fit;
+      global;
+      globalThis;
+      // inspect;
+      isFinite;
+      isNaN;
+      // it;
+      // jest-symbol-do-not-touch;
+      // keys;
+      // monitor;
+      parseFloat;
+      parseInt;
+      performance;
+      process;
+      // profile;
+      // profileEnd;
+      // queryObjects;
+      queueMicrotask;
+      // require; // can't test this, stupid jest overrides it and we end up traversing all of JEST
+      setImmediate;
+      setInterval;
+      setTimeout;
+      // table;
+      // test;
+      // ts - jest;
+      // undebug;
+      undefined;
+      unescape;
+      // unmonitor;
+      // values;
+      // xdescribe;
+      // xit;
+      // xtest;
+    },
+    expectResult: undefined,
   });
 });
 
@@ -364,14 +583,17 @@ async function testCase<
   T,
   IsFactoryFunction extends boolean = false
 >(testCase: {
+  preSerializeValue?: SerializeFunctionArgs["preSerializeValue"];
   closure: F;
   isFactoryFunction?: IsFactoryFunction;
   args?: any;
-  expectResult: T;
+  expectResult: T | ((t: T) => void);
 }) {
-  const { closure, args, expectResult, isFactoryFunction } = testCase;
+  const { closure, args, expectResult, isFactoryFunction, preSerializeValue } =
+    testCase;
   const serialized = await serializeFunction(closure, {
     isFactoryFunction,
+    preSerializeValue,
   });
   expect(serialized).toMatchSnapshot();
   const fileName = path.join(__dirname, `${uuid.v4()}.js`);
@@ -383,7 +605,11 @@ async function testCase<
     if (typeof actualResult?.then === "function") {
       actualResult = await actualResult;
     }
-    expect(actualResult).toEqual(expectResult);
+    if (typeof expectResult === "function") {
+      (<any>expectResult)(actualResult);
+    } else {
+      expect(actualResult).toEqual(expectResult);
+    }
   } finally {
     fs.rmSync(fileName);
   }

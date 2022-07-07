@@ -64,6 +64,51 @@ export async function serializeFunction(
   func: Function,
   args: SerializeFunctionArgs = {}
 ): Promise<string> {
+  /**
+   * Maintains a lookup table for all globally known values. These values will not be serialized if detected as free variables.
+   *
+   * TODO: how should we handle the case where user-land code adds to the globals? This is definitely possible.
+   * TODO: also, what happens if a global value is overridden? This is also possible.
+   */
+  const Globals = new Map<any, ts.Expression>([
+    ...Object.entries(<any>{
+      global,
+      process,
+      console,
+      Object,
+      Array,
+      Promise,
+      Boolean,
+      String,
+      Number,
+      BigInt,
+      BigInt64Array,
+      BigUint64Array,
+    }).map(
+      ([key, value]: any) => [value, ts.factory.createIdentifier(key)] as const
+    ),
+    ...Object.getOwnPropertyNames(global).flatMap((name) => {
+      const val = (<any>global)[name];
+      const root = [val, ts.factory.createIdentifier(name)] as const;
+      if (
+        (typeof val === "object" || typeof val === "function") &&
+        val.prototype
+      ) {
+        return [
+          root,
+          [
+            val.prototype,
+            ts.factory.createPropertyAccessExpression(
+              ts.factory.createIdentifier(name),
+              "prototype"
+            ),
+          ],
+        ] as const;
+      }
+      return [root] as const;
+    }),
+  ]);
+
   const printer = ts.createPrinter({ newLine: ts.NewLineKind.LineFeed });
 
   function emit(stmts: ts.Statement[], file: ts.SourceFile) {
@@ -72,22 +117,6 @@ export async function serializeFunction(
         printer.printNode(ts.EmitHint.Unspecified, stmt, file).trim()
       )
     );
-  }
-
-  function nameGenerator(prefix: string) {
-    let i = 0;
-
-    const nextName = () => `${prefix}${(i += 1)}`;
-
-    return (exclude?: Set<string>) => {
-      let name = nextName();
-      if (exclude) {
-        while (exclude.has(name)) {
-          name = nextName();
-        }
-      }
-      return name;
-    };
   }
 
   const nextVarName = nameGenerator("v");
@@ -123,6 +152,37 @@ export async function serializeFunction(
   ): Promise<ts.Identifier> {
     const funcString = func.toString();
 
+    if (Globals.has(func)) {
+      const varName = nextVarName();
+      emit(
+        [
+          ts.factory.createVariableStatement(
+            undefined,
+            ts.factory.createVariableDeclarationList(
+              [
+                ts.factory.createVariableDeclaration(
+                  varName,
+                  undefined,
+                  undefined,
+                  Globals.get(func)!
+                ),
+              ],
+              ts.NodeFlags.Const
+            )
+          ),
+        ],
+        // dummy
+        ts.createSourceFile(
+          "",
+          "function () {}",
+          ts.ScriptTarget.Latest,
+          true,
+          ts.ScriptKind.JS
+        )
+      );
+      return ts.factory.createIdentifier(varName);
+    }
+
     if (isNativeFunction(funcString)) {
       if (isBoundFunction(func)) {
         // this is a function created with .bind(self)
@@ -133,16 +193,10 @@ export async function serializeFunction(
           });
         }
       }
-      // @ts-expect-error
-      return funcString;
+      debugger;
+      throw new Error(`Cannot handle native function: ${funcString}`);
     } else {
-      let parsedCode = ts.createSourceFile(
-        "",
-        funcString,
-        ts.ScriptTarget.Latest,
-        true,
-        ts.ScriptKind.JS
-      );
+      let parsedCode = parseFunctionString(funcString);
 
       /**
        * Run transformers on the closure AST before closure analysis.
@@ -177,7 +231,7 @@ export async function serializeFunction(
         ts.forEachChild(node, walk);
       });
 
-      const freeVariablesAsync: Promise<FreeVariable>[] = [];
+      const freeVariablesAsync: Promise<FreeVariable | undefined>[] = [];
 
       // serialize all free variables
       visit(funcAST);
@@ -230,12 +284,13 @@ export async function serializeFunction(
           }
           return;
         } else if (isFreeVariable(node, lexicalScope)) {
-          if (node.text === "a") {
-            isFreeVariable(node, lexicalScope);
-          }
           freeVariablesAsync.push(
             (async () => {
               const val = await getFreeVariable(func, node.text, false);
+              if (Globals.has(val)) {
+                // do not serialize globally known values
+                return undefined;
+              }
 
               return {
                 variableName: node.text,
@@ -261,7 +316,9 @@ export async function serializeFunction(
         }
       }
 
-      const freeVariables = await Promise.all(freeVariablesAsync);
+      const freeVariables = (await Promise.all(freeVariablesAsync)).filter(
+        (a): a is Exclude<typeof a, undefined> => a !== undefined
+      );
 
       if (args.postProcess?.length) {
         funcAST = transform(funcAST, args.postProcess);
@@ -487,6 +544,11 @@ export async function serializeFunction(
 
         async function doSerialize(variableName: string) {
           if (typeof value === "function") {
+            if (value.name === "Object") {
+              const id = FunctionGetScriptId(value);
+              const source = FunctionGetScriptSource(value);
+              console.log(id, source);
+            }
             return serializeClosure(value, {
               variableName,
             });
@@ -500,7 +562,12 @@ export async function serializeFunction(
             const prototype = Object.getPrototypeOf(value);
             let objectClass;
             if (typeof prototype?.constructor === "function") {
-              if (prototype.constructor !== Function) {
+              if (
+                prototype.constructor !== Function &&
+                prototype.constructor !== Function.prototype &&
+                prototype.constructor !== Object &&
+                prototype.constructor !== Object.prototype
+              ) {
                 objectClass = await serializeValue(
                   prototype.constructor,
                   exclude
@@ -567,6 +634,45 @@ export async function serializeFunction(
   }
 }
 
+function parseFunctionString(funcString: string): ts.SourceFile {
+  const sf = ts.createSourceFile(
+    "",
+    funcString,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.JS
+  );
+  if (sf.statements.length === 0) {
+    throw new Error(`failed to parse function: ${funcString}`);
+  } else if (sf.statements.length === 1) {
+    return sf;
+  } else {
+    // this is a method which incorrectly parses as the following
+    // [CallExpression, Block]
+    // [Identifier(async), CallExpression, Block]
+    // [*, CallExpression, Block]
+
+    // append the `function` keyword so that it parses correctly
+    return parseFunctionString(`function ${funcString}`);
+  }
+}
+
+function transform(
+  funcAST:
+    | ts.ClassDeclaration
+    | ts.ClassExpression
+    | ts.FunctionDeclaration
+    | ts.FunctionExpression
+    | ts.ArrowFunction,
+  transformers: ts.TransformerFactory<ts.Node>[]
+) {
+  return ts.transform(funcAST, transformers).transformed[0] as
+    | ts.ClassDeclaration
+    | ts.FunctionDeclaration
+    | ts.FunctionExpression
+    | ts.ArrowFunction;
+}
+
 /**
  * Gets the Function AST from a SourceFile consisting of a single statement
  * containing either:
@@ -583,14 +689,18 @@ function getClosure(
   | ts.ArrowFunction
   | undefined {
   const stmt = code.statements[0];
-  return ts.isFunctionDeclaration(stmt) || ts.isClassDeclaration(stmt)
-    ? stmt
-    : ts.isExpressionStatement(stmt) &&
-      (ts.isFunctionExpression(stmt.expression) ||
-        ts.isArrowFunction(stmt.expression) ||
-        ts.isClassExpression(stmt.expression))
-    ? stmt.expression
-    : undefined;
+  if (ts.isFunctionDeclaration(stmt) || ts.isClassDeclaration(stmt)) {
+    return stmt;
+  } else if (ts.isExpressionStatement(stmt)) {
+    if (
+      ts.isFunctionExpression(stmt.expression) ||
+      ts.isArrowFunction(stmt.expression) ||
+      ts.isClassExpression(stmt.expression)
+    ) {
+      return stmt.expression;
+    }
+  }
+  return undefined;
 }
 
 /**
@@ -605,31 +715,7 @@ function isFreeVariable(
   }
   const parent = node.parent;
 
-  if (
-    /**
-     * Used in the extends clause.
-     * ```ts
-     * class A extends B {
-     *              // ^ this is not a free variable
-     * }
-     * class A extends B.C {
-     *              // ^ this is not a free variable
-     * }
-     * class A extends B[C] {
-     *              // ^ this is not a free variable
-     * }
-     * ```
-     *
-     * For some of these cases, it would be "proper" to consider them a free variable, but NodeJS's [[Scopes]]
-     * only contains references to variables captured by the Function or Class's constructor. To capture
-     * the extends clause, we will instead serialize Object.getPrototypeOf(A) and pass that in to the class.
-     * This is better anyway as it it is always possible to overwrite the `extends` clause with `Object.setPrototypeOf`.
-     */
-    ts.isExpressionWithTypeArguments(parent)
-  ) {
-    // this is an Identifier in an extends clause
-    return false;
-  } else if (ts.isBindingElement(parent)) {
+  if (ts.isBindingElement(parent)) {
     return false;
   } else if (
     /**
@@ -689,7 +775,7 @@ function isFreeVariable(
      * ```
      */
     ts.isVariableDeclaration(parent) &&
-    bindingHasId(parent.name)
+    bindingHasId(node, parent.name)
   ) {
     return false;
   }
@@ -713,50 +799,37 @@ function isFreeVariable(
    * ```
    */
   return !lexicalScope.has(node.text);
-
-  function bindingHasId(
-    binding: ts.BindingName | ts.BindingElement | ts.OmittedExpression
-  ): boolean {
-    if (ts.isOmittedExpression(binding)) {
-      return false;
-    } else if (ts.isBindingElement(binding)) {
-      return bindingHasId(binding.name);
-    } else if (ts.isIdentifier(binding)) {
-      return binding === node;
-    } else if (
-      ts.isObjectBindingPattern(binding) ||
-      ts.isArrayBindingPattern(binding)
-    ) {
-      return binding.elements.find(bindingHasId) !== undefined;
-    }
+}
+function bindingHasId(
+  id: ts.Identifier,
+  binding: ts.BindingName | ts.BindingElement | ts.OmittedExpression
+): boolean {
+  if (ts.isOmittedExpression(binding)) {
     return false;
+  } else if (ts.isBindingElement(binding)) {
+    return bindingHasId(id, binding.name);
+  } else if (ts.isIdentifier(binding)) {
+    return binding === id;
+  } else if (
+    ts.isObjectBindingPattern(binding) ||
+    ts.isArrayBindingPattern(binding)
+  ) {
+    return (
+      binding.elements.find((element) => bindingHasId(id, element)) !==
+      undefined
+    );
   }
+  return false;
 }
 
 function isNativeFunction(funcString: string) {
-  return funcString === "function () { [native code] }";
+  return funcString.indexOf("[native code]") !== -1;
 }
 
 function isBoundFunction(func: Function): func is Function & {
   name: `bound ${string}`;
 } {
   return func.name.startsWith("bound ");
-}
-
-function transform(
-  funcAST:
-    | ts.ClassDeclaration
-    | ts.ClassExpression
-    | ts.FunctionDeclaration
-    | ts.FunctionExpression
-    | ts.ArrowFunction,
-  transformers: ts.TransformerFactory<ts.Node>[]
-) {
-  return ts.transform(funcAST, transformers).transformed[0] as
-    | ts.ClassDeclaration
-    | ts.FunctionDeclaration
-    | ts.FunctionExpression
-    | ts.ArrowFunction;
 }
 
 function isThisExpression(node: ts.Node): node is ts.ThisExpression {
@@ -826,8 +899,24 @@ function getBindingNames(
   return assertNever(node);
 }
 
+function nameGenerator(prefix: string) {
+  let i = 0;
+
+  const nextName = () => `${prefix}${(i += 1)}`;
+
+  return (exclude?: Set<string>) => {
+    let name = nextName();
+    if (exclude) {
+      while (exclude.has(name)) {
+        name = nextName();
+      }
+    }
+    return name;
+  };
+}
+
 function assertNever(a: never): never {
-  throw new Error(`unreachable code block reached`);
+  throw new Error(`unreachable code block reached with value: ${a}`);
 }
 
 async function getFreeVariable(
