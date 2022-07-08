@@ -50,5 +50,4 @@ junit.xml
 /lib
 /dist/
 !/.eslintrc.json
-/test-generated-closures/
 !/.git/hooks/pre-commit

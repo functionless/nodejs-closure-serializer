@@ -78,7 +78,6 @@ const project = new typescript.TypeScriptProject({
   prettier: true,
   prettierOptions: {},
 });
-project.addGitIgnore("/test-generated-closures/");
 
 new GitHooksPreCommitComponent(project);
 
