@@ -2115,7 +2115,7 @@ function __f0() {
     let o = __o;
 
     return function () {
-                console.log(o.a);
+                return o.a;
             };
   }).apply(undefined, undefined).apply(this, arguments);
 }",
@@ -2133,7 +2133,7 @@ function __f0() {
     let o = __o;
 
     return function () {
-                console.log(o[\\"a\\"]);
+                return o[\\"a\\"];
             };
   }).apply(undefined, undefined).apply(this, arguments);
 }",
@@ -2233,7 +2233,6 @@ function __f1(__0, __1, __2, __3) {
         catch (err) {
             return err.message;
         }
-        debugger;
         throw Error(\\"Function was expected to throw, but didn't\\");
     });
 };
@@ -2988,11 +2987,19 @@ exports[`after hooks closure Don't serialize \`this\` in function expressions 1`
 Object {
   "exportName": "handler",
   "text": "exports.handler = __f0;
-function __f0() {
+
+__f1.value = \\"value\\";
+function __f1() {
   return (function() {
     return function () {
-        return this;
+        return this.value;
     };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let func = __f1;
+
+    return () => func.call(func);
   }).apply(undefined, undefined).apply(this, arguments);
 }",
 }
@@ -3081,7 +3088,6 @@ Object {
 function __f0() {
   return (function() {
     return function () {
-            console.log(this);
             return 0;
         };
   }).apply(undefined, undefined).apply(this, arguments);
@@ -3343,7 +3349,7 @@ function __f1() {
     let f2 = __f2;
 
     return function /*f2*/() {
-            console.log(obj);
+            return obj;
         };
   }).apply(undefined, undefined).apply(this, arguments);
 }function __f0() {
@@ -3355,7 +3361,7 @@ function __f1() {
     return () => {
                 f1();
                 obj.a = 2;
-                f2();
+                return f2();
             };
   }).apply(undefined, undefined).apply(this, arguments);
 }",
@@ -3553,6 +3559,41 @@ function __f0(__0, __1, __2, __3) {
 }
 `;
 
+exports[`after hooks closure Serialize arrow function calling static class methods (es5 class style) 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+__D.m = __f1;
+__D.n = __f2;
+function __D() {
+  return (function() {
+    let D = __D;
+
+    return function /*D*/() { };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f1() {
+  return (function() {
+    return function () {
+                return this.n();
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f2() {
+  return (function() {
+    return function () {
+                return 0;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let D = __D;
+
+    return () => D.m();
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
 exports[`after hooks closure Serialize class 1`] = `
 Object {
   "exportName": "handler",
@@ -3654,7 +3695,7 @@ function __f1() {
 }function __f3() {
   return (function() {
     return function /*n*/() {
-                return 1;
+                return this.x;
             };
   }).apply(undefined, undefined).apply(this, arguments);
 }function __f4() {
@@ -3730,38 +3771,35 @@ function __C() {
 exports[`after hooks closure Serialize instance class methods 1`] = `
 Object {
   "exportName": "handler",
-  "text": "exports.handler = __m;
+  "text": "exports.handler = __f0;
 
-var __boundThis_proto = {};
-Object.defineProperty(__f0, \\"prototype\\", { value: __boundThis_proto });
-Object.defineProperty(__boundThis_proto, \\"constructor\\", { configurable: true, writable: true, value: __f0 });
-Object.defineProperty(__boundThis_proto, \\"m\\", { configurable: true, writable: true, value: __f1 });
-Object.defineProperty(__boundThis_proto, \\"n\\", { configurable: true, writable: true, value: __f2 });
-var __boundThis = Object.create(__boundThis_proto);
-function __f0() {
+var __c_proto = {};
+Object.defineProperty(__f1, \\"prototype\\", { value: __c_proto });
+Object.defineProperty(__c_proto, \\"constructor\\", { configurable: true, writable: true, value: __f1 });
+Object.defineProperty(__c_proto, \\"m\\", { configurable: true, writable: true, value: __f2 });
+Object.defineProperty(__c_proto, \\"n\\", { configurable: true, writable: true, value: __f3 });
+var __c = Object.create(__c_proto);
+function __f1() {
   return (function() {
     return function /*constructor*/() { };
   }).apply(undefined, undefined).apply(this, arguments);
-}function __f1() {
+}function __f2() {
   return (function() {
     return function /*m*/() {
                 return this.n();
             };
   }).apply(undefined, undefined).apply(this, arguments);
-}function __f2() {
+}function __f3() {
   return (function() {
     return function /*n*/() {
                 return 0;
             };
   }).apply(undefined, undefined).apply(this, arguments);
-}function __m() {
+}function __f0() {
   return (function() {
-    let __boundThis = __boundThis;
-    let m = __m;
+    let c = __c;
 
-    return function /*m*/() {
-                return this.n();
-            };
+    return () => c.m();
   }).apply(undefined, undefined).apply(this, arguments);
 }",
 }
@@ -3831,28 +3869,25 @@ function __f0() {
 }
 `;
 
-exports[`after hooks closure Serialize static class methods (es5 class style) 1`] = `
-Object {
-  "exportName": "handler",
-  "text": "exports.handler = __f0;
-function __f0() {
-  return (function() {
-    return function () {
-                return this.n();
-            };
-  }).apply(undefined, undefined).apply(this, arguments);
-}",
-}
-`;
-
 exports[`after hooks closure Serialize static class methods 1`] = `
 Object {
   "exportName": "handler",
   "text": "exports.handler = __f0;
-function __f0() {
+
+var __C = {};
+Object.defineProperty(__C, \\"n\\", { configurable: true, writable: true, value: __f1 });
+function __f1() {
   return (function() {
+    return function /*n*/() {
+                return 0;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let C = __C;
+
     return function /*m*/() {
-                return this.n();
+                return C.n();
             };
   }).apply(undefined, undefined).apply(this, arguments);
 }",
@@ -3989,23 +4024,29 @@ Object {
 
 var __f1_prototype = {};
 Object.defineProperty(__f1_prototype, \\"constructor\\", { configurable: true, writable: true, value: __f1 });
+var __f2_prototype = Object.create(Object.getPrototypeOf((function*(){}).prototype));
+Object.defineProperty(__f2, \\"prototype\\", { writable: true, value: __f2_prototype });
+Object.setPrototypeOf(__f2, Object.getPrototypeOf(function*(){}));
 Object.defineProperty(__f1_prototype, Symbol.iterator, { configurable: true, writable: true, value: __f2 });
 Object.defineProperty(__f1, \\"prototype\\", { value: __f1_prototype });
 function __f1() {
   return (function() {
     return function /*constructor*/() { };
   }).apply(undefined, undefined).apply(this, arguments);
-}function __f2(__0) {
+}function __f2() {
   return (function() {
-    return function (a) {
-                return a;
+    return function* () {
+                yield 1;
             };
   }).apply(undefined, undefined).apply(this, arguments);
 }function __f0() {
   return (function() {
     let C = __f1;
 
-    return () => C;
+    return () => {
+                const c = new C();
+                return Array.from(c);
+            };
   }).apply(undefined, undefined).apply(this, arguments);
 }",
 }
@@ -4016,14 +4057,26 @@ Object {
   "exportName": "handler",
   "text": "exports.handler = __f0;
 
-var __f0_prototype = Object.create(Object.getPrototypeOf((function*(){}).prototype));
-Object.defineProperty(__f0, \\"prototype\\", { writable: true, value: __f0_prototype });
-Object.setPrototypeOf(__f0, Object.getPrototypeOf(function*(){}));
-function __f0() {
+var __f1_prototype = Object.create(Object.getPrototypeOf((function*(){}).prototype));
+Object.defineProperty(__f1, \\"prototype\\", { writable: true, value: __f1_prototype });
+Object.setPrototypeOf(__f1, Object.getPrototypeOf(function*(){}));
+function __f1() {
   return (function() {
     return function* () {
             yield 1;
         };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let gf = __f1;
+
+    return () => {
+                let accum = 0;
+                for (const i of gf()) {
+                    accum += i;
+                }
+                return accum;
+            };
   }).apply(undefined, undefined).apply(this, arguments);
 }",
 }
@@ -4086,7 +4139,6 @@ function __f2(__0) {
   return (function() {
     return function /*constructor*/(n) {
                 this.n = n;
-                console.log(\\"DConstructor\\");
             };
   }).apply(undefined, undefined).apply(this, arguments);
 }function __f3(__0) {
@@ -4107,7 +4159,6 @@ function __f2(__0) {
 
     return function /*constructor*/(n) {
     __super.call(this, n + 1);
-    console.log(\\"CConstructor\\");
 };
   }).apply(undefined, undefined).apply(this, arguments);
 }function __f5() {
@@ -4135,7 +4186,10 @@ function __f2(__0) {
   return (function() {
     let C = __f1;
 
-    return () => C;
+    return () => {
+                const c = new C(0);
+                return [c.cMethod(), c.dVirtual()];
+            };
   }).apply(undefined, undefined).apply(this, arguments);
 }",
 }
@@ -4163,8 +4217,9 @@ function __f1() {
 }function __f0() {
   return (function() {
     let C = __f1;
+    let methodName = \\"method name\\";
 
-    return () => C;
+    return () => new C()[methodName](1);
   }).apply(undefined, undefined).apply(this, arguments);
 }",
 }
@@ -4178,8 +4233,10 @@ Object {
 __f0.foo = \\"bar\\";
 function __f0() {
   return (function() {
+    let v = __f0;
+
     return () => {
-            return 1;
+            return 1 + v.foo;
         };
   }).apply(undefined, undefined).apply(this, arguments);
 }",
@@ -4189,7 +4246,7 @@ function __f0() {
 exports[`after hooks closure Test generator func 1`] = `
 Object {
   "exportName": "handler",
-  "text": "exports.handler = __f;
+  "text": "exports.handler = __f0;
 
 var __f_prototype = Object.create(Object.getPrototypeOf((function*(){}).prototype));
 Object.defineProperty(__f, \\"prototype\\", { writable: true, value: __f_prototype });
@@ -4201,6 +4258,18 @@ function __f() {
     return function* /*f*/() {
             yield 1;
         };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let f = __f;
+
+    return () => {
+                const arr = [];
+                for (const i of f()) {
+                    arr.push(i);
+                }
+                return arr;
+            };
   }).apply(undefined, undefined).apply(this, arguments);
 }",
 }
@@ -4230,14 +4299,18 @@ function __f1() {
 }function __f3(__0) {
   return (function() {
     return function /*foo*/(v) {
-                this._x = v;
+                this._x = v + 1;
             };
   }).apply(undefined, undefined).apply(this, arguments);
 }function __f0() {
   return (function() {
     let C = __f1;
 
-    return () => C;
+    return () => {
+                const c = new C();
+                c.foo = 1;
+                return c.foo;
+            };
   }).apply(undefined, undefined).apply(this, arguments);
 }",
 }
@@ -4248,28 +4321,33 @@ Object {
   "exportName": "handler",
   "text": "exports.handler = __f0;
 
-Object.defineProperty(__f1, \\"foo\\", { configurable: true, get: __f2, set: __f3 });
+var __C = {};
+Object.defineProperty(__C, \\"foo\\", { configurable: true, get: __f1, set: __f2 });
+__C.i = 1;
 function __f1() {
   return (function() {
-    return function /*constructor*/() { };
-  }).apply(undefined, undefined).apply(this, arguments);
-}function __f2() {
-  return (function() {
+    let C = __C;
+
     return function /*foo*/() {
-                throw new Error(\\"This getter function should not be evaluated while closure serialization.\\");
+                return C.i;
             };
   }).apply(undefined, undefined).apply(this, arguments);
-}function __f3(__0) {
+}function __f2(__0) {
   return (function() {
+    let C = __C;
+
     return function /*foo*/(v) {
-                throw new Error(\\"This setter function should not be evaluated while closure serialization.\\");
+                C.i += v;
             };
   }).apply(undefined, undefined).apply(this, arguments);
 }function __f0() {
   return (function() {
-    let C = __f1;
+    let C = __C;
 
-    return () => C;
+    return () => {
+                C.foo = 1;
+                return C.foo;
+            };
   }).apply(undefined, undefined).apply(this, arguments);
 }",
 }
@@ -4303,6 +4381,7 @@ Object {
   "text": "exports.handler = __f0;
 
 var __x = Object.create(global.Number.prototype);
+__x.prop = \\"value\\";
 function __f0() {
   return (function() {
     let x = __x;
@@ -4422,7 +4501,6 @@ function __f3(__0) {
   return (function() {
     return function /*constructor*/(n) {
                 this.n = n;
-                console.log(\\"AConstruction\\");
             };
   }).apply(undefined, undefined).apply(this, arguments);
 }function __f4(__0) {
@@ -4437,7 +4515,6 @@ function __f3(__0) {
 
     return function /*constructor*/(n) {
     __super.call(this, n + 1);
-    console.log(\\"BConstructor\\");
 };
   }).apply(undefined, undefined).apply(this, arguments);
 }function __f5(__0) {
@@ -4454,7 +4531,6 @@ function __f3(__0) {
 
     return function /*constructor*/(n) {
     __super.call(this, n * 2);
-    console.log(\\"CConstructor\\");
 };
   }).apply(undefined, undefined).apply(this, arguments);
 }function __f6(__0) {
@@ -4469,7 +4545,7 @@ function __f3(__0) {
   return (function() {
     let C = __f1;
 
-    return () => C;
+    return () => new C(1).method(2);
   }).apply(undefined, undefined).apply(this, arguments);
 }",
 }
@@ -4482,7 +4558,7 @@ Object {
 
 var __f3_prototype = {};
 Object.defineProperty(__f3_prototype, \\"constructor\\", { configurable: true, writable: true, value: __f3 });
-var __f3_prototype_sym = Symbol();
+var __f3_prototype_sym = Symbol.for(\\"sym\\");
 Object.defineProperty(__f3_prototype, __f3_prototype_sym, { configurable: true, writable: true, value: __f4 });
 Object.defineProperty(__f3, \\"prototype\\", { value: __f3_prototype });
 var __f2_prototype = Object.create(__f3_prototype);
@@ -4499,7 +4575,6 @@ function __f3(__0) {
   return (function() {
     return function /*constructor*/(n) {
                 this.n = n;
-                console.log(\\"AConstruction\\");
             };
   }).apply(undefined, undefined).apply(this, arguments);
 }function __f4(__0) {
@@ -4514,7 +4589,6 @@ function __f3(__0) {
 
     return function /*constructor*/(n) {
     __super.call(this, n + 1);
-    console.log(\\"BConstructor\\");
 };
   }).apply(undefined, undefined).apply(this, arguments);
 }function __f5(__0) {
@@ -4532,7 +4606,6 @@ function __f3(__0) {
 
     return function /*constructor*/(n) {
     __super.call(this, n * 2);
-    console.log(\\"CConstructor\\");
 };
   }).apply(undefined, undefined).apply(this, arguments);
 }function __f6(__0) {
@@ -4547,8 +4620,9 @@ function __f3(__0) {
 }function __f0() {
   return (function() {
     let C = __f1;
+    let sym = __f3_prototype_sym;
 
-    return () => C;
+    return () => new C(1)[sym](1);
   }).apply(undefined, undefined).apply(this, arguments);
 }",
 }
@@ -4569,7 +4643,6 @@ function __f2(__0) {
   return (function() {
     return function /*constructor*/(n) {
                 this.n = n;
-                console.log(\\"AConstruction\\");
             };
   }).apply(undefined, undefined).apply(this, arguments);
 }function __f3(__0) {
@@ -4590,7 +4663,6 @@ function __f2(__0) {
 
     return function /*constructor*/(n) {
     __super.call(this, n + 1);
-    console.log(\\"BConstructor\\");
 };
   }).apply(undefined, undefined).apply(this, arguments);
 }function __f5(__0) {
@@ -4613,8 +4685,15 @@ function __f2(__0) {
 }function __f0() {
   return (function() {
     let B = __f1;
+    let sym = __f2_sym;
+    let A = __f2;
 
-    return () => B;
+    return () => B.method(1) +
+                B[sym](1) +
+                new B(1).n +
+                A.method(1) +
+                A[sym](1) +
+                new A(1).n;
   }).apply(undefined, undefined).apply(this, arguments);
 }",
 }

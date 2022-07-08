@@ -72,9 +72,6 @@
       "/test/",
       "/node_modules/"
     ],
-    "modulePathIgnorePatterns": [
-      "<rootDir>/test/*.js"
-    ],
     "globals": {
       "ts-jest": {
         "tsconfig": "tsconfig.dev.json",

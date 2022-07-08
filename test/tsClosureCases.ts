@@ -79,7 +79,6 @@ describe("closure", () => {
   cases.push({
     title: "Function closure with this capture",
     func: function () {
-      console.log(this);
       return 0;
     },
     snapshot: true,
@@ -106,7 +105,7 @@ describe("closure", () => {
   cases.push({
     title: "Arrow closure with this capture",
     func: () => {
-      console.log(this);
+      return (<any>this)?.value;
     },
     error: `Error serializing function 'func'
 
@@ -115,30 +114,10 @@ function 'func': which could not be serialized because
 
 Function code:
   () => {
-              console.log(this);
+              return this === null || this === void 0 ? void 0 : this.value;
           }
 `,
   });
-
-  const awaiterCode = `
-function __f1(__0, __1, __2, __3) {
-  return (function() {
-    with({  }) {
-
-return function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-
-    }
-  }).apply(undefined, undefined).apply(this, arguments);
-}
-`;
 
   cases.push({
     title: "Async lambda that does not capture this",
@@ -179,7 +158,9 @@ return function (thisArg, _arguments, P, generator) {
     title: "Arrow closure with this and arguments capture",
     // @ts-ignore: this is just test code.
     func: function () {
-      return () => { console.log(this + arguments); };
+      return () => {
+        console.log(this + arguments);
+      };
     }.apply(this, [0, 1]),
     error: `Error serializing function '<anonymous>'
 
@@ -187,7 +168,9 @@ function '<anonymous>': which could not be serialized because
   arrow function captured 'this'. Assign 'this' to another name outside function and capture that.
 
 Function code:
-  () => { console.log(this + arguments); }
+  () => {
+                  console.log(this + arguments);
+              }
 `,
   });
 
@@ -369,10 +352,10 @@ Function code:
     cases.push({
       title: "Serializes basic captures",
       func: () => {
-        return wcap + `${xcap}` + ycap.length + zcap.a + zcap.b + zcap.c
+        return wcap + `${xcap}` + ycap.length + zcap.a + zcap.b + zcap.c;
       },
       snapshot: true,
-      expectResult: wcap + `${xcap}` + ycap.length + zcap.a + zcap.b + zcap.c
+      expectResult: wcap + `${xcap}` + ycap.length + zcap.a + zcap.b + zcap.c,
     });
   }
   {
@@ -517,7 +500,6 @@ Function code:
         return { v };
       },
       snapshot: true,
-      expectResult: undefined,
     });
   }
 
@@ -623,20 +605,23 @@ function '<anonymous>': which could not be serialized because
   arrow function captured 'this'. Assign 'this' to another name outside function and capture that.
 
 Function code:
-  () => { console.log(this.x); }
+  () => {
+                      console.log(this.x);
+                  }
 `,
     });
   }
 
   const func = function () {
-    return this;
-  }
+    return this.value;
+  };
+  func.value = "value";
 
   cases.push({
     title: "Don't serialize `this` in function expressions",
-    func,
+    func: () => func.call(func),
     snapshot: true,
-    expectResult: func,
+    expectResult: "value",
   });
 
   {
@@ -648,7 +633,7 @@ Function code:
         return mutable;
       },
       snapshot: true,
-      expectResult: undefined,
+      expectResult: {},
       afters: [
         {
           pre: () => {
@@ -660,7 +645,7 @@ Function code:
             return mutable;
           },
           snapshot: true,
-          expectResult: undefined,
+          expectResult: { timesTheyAreAChangin: true },
         },
       ],
     });
@@ -812,14 +797,14 @@ Function code:
         return this.n();
       }
       public n() {
-        return 1;
+        return this.x;
       }
     }
     cases.push({
       title: "Serialize constructed class",
       func: () => new C(),
       snapshot: true,
-      expectResult: {x: 1},
+      expectResult: { x: 1 },
     });
   }
 
@@ -832,14 +817,13 @@ Function code:
         return 0;
       }
     }
-    const c = new C()
+    const c = new C();
 
     cases.push({
       title: "Serialize instance class methods",
-      func: c.m.bind(c),
+      func: () => c.m(),
       snapshot: true,
       expectResult: 0,
-      noClean: true
     });
   }
 
@@ -856,7 +840,7 @@ Function code:
       title: "Serialize instance class methods, forget to bind",
       func: new C().m,
       snapshot: true,
-      expectThrow: new TypeError("this.n is not a function")
+      expectThrow: new TypeError("this.n is not a function"),
     });
   }
 
@@ -877,7 +861,7 @@ Function code:
   {
     class C {
       public static m() {
-        return this.n();
+        return C.n();
       }
       public static n() {
         return 0;
@@ -887,9 +871,47 @@ Function code:
       title: "Serialize static class methods",
       func: C.m,
       snapshot: true,
-      expectResult: undefined,
+      expectResult: 0,
     });
   }
+
+  // TODO: currently broken
+  // {
+  //   class C {
+  //     public static m() {
+  //       return this.n();
+  //     }
+  //     public static n() {
+  //       return 0;
+  //     }
+  //   }
+  //   cases.push({
+  //     title: "Serialize static class methods with this reference",
+  //     func: C.m,
+  //     snapshot: true,
+  //     expectResult: 0,
+  //   });
+  // }
+
+  // TODO: currently broken
+  // {
+  //   const D = (function () {
+  //     function D() {}
+  //     (<any>D).m = function () {
+  //       return this.n();
+  //     };
+  //     (<any>D).n = function () {
+  //       return 0;
+  //     };
+  //     return D;
+  //   })();
+  //   cases.push({
+  //     title: "Serialize reference to static class methods (es5 class style)",
+  //     func: (<any>D).m,
+  //     snapshot: true,
+  //     expectResult: undefined,
+  //   });
+  // }
 
   {
     const D = (function () {
@@ -903,10 +925,11 @@ Function code:
       return D;
     })();
     cases.push({
-      title: "Serialize static class methods (es5 class style)",
-      func: (<any>D).m,
+      title:
+        "Serialize arrow function calling static class methods (es5 class style)",
+      func: () => (<any>D).m(),
       snapshot: true,
-      expectResult: undefined,
+      expectResult: 0,
     });
   }
 
@@ -968,7 +991,7 @@ Function code:
       return obj;
     }
     function f2() {
-      console.log(obj);
+      return obj;
     }
 
     cases.push({
@@ -976,10 +999,10 @@ Function code:
       func: () => {
         f1();
         obj.a = 2;
-        f2();
+        return f2();
       },
       snapshot: true,
-      expectResult: undefined,
+      expectResult: { a: 2 },
     });
   }
 
@@ -1020,7 +1043,7 @@ Function code:
       title: "Test array #1",
       func: () => v,
       snapshot: true,
-      expectResult: undefined,
+      expectResult: [1, , 3],
     });
   }
 
@@ -1033,13 +1056,13 @@ Function code:
       title: "Test array #2",
       func: () => v,
       snapshot: true,
-      expectResult: undefined,
+      expectResult: v,
     });
   }
 
   {
     const v = () => {
-      return 1;
+      return 1 + (<any>v).foo;
     };
     (<any>v).foo = "bar";
 
@@ -1047,7 +1070,7 @@ Function code:
       title: "Test function with property",
       func: v,
       snapshot: true,
-      expectResult: undefined,
+      expectResult: "1bar",
     });
   }
 
@@ -1061,12 +1084,13 @@ Function code:
       title: "Test null prototype",
       func: v,
       snapshot: true,
-      expectResult: undefined,
+      expectResult: {},
     });
   }
 
   {
     const x = Object.create(Number.prototype);
+    x.prop = "value";
     const v = () => {
       return x;
     };
@@ -1075,7 +1099,7 @@ Function code:
       title: "Test non-default object prototype",
       func: v,
       snapshot: true,
-      expectResult: undefined,
+      expectResult: { prop: "value" },
     });
   }
 
@@ -1093,7 +1117,7 @@ Function code:
       title: "Test recursive prototype object prototype",
       func: v,
       snapshot: true,
-      expectResult: undefined,
+      expectResult: {},
     });
   }
 
@@ -1109,7 +1133,7 @@ Function code:
       title: "Test non-default function prototype",
       func: v,
       snapshot: true,
-      expectResult: undefined,
+      expectResult: 0,
     });
   }
 
@@ -1120,9 +1144,15 @@ Function code:
 
     cases.push({
       title: "Test generator func",
-      func: f,
+      func: () => {
+        const arr: any[] = [];
+        for (const i of f()) {
+          arr.push(i);
+        }
+        return arr;
+      },
       snapshot: true,
-      expectResult: undefined,
+      expectResult: [1],
     });
   }
 
@@ -1133,9 +1163,15 @@ Function code:
 
     cases.push({
       title: "Test anonymous generator func",
-      func: gf,
+      func: () => {
+        let accum = 0;
+        for (const i of gf()) {
+          accum += i;
+        }
+        return accum;
+      },
       snapshot: true,
-      expectResult: undefined,
+      expectResult: 1,
     });
   }
 
@@ -1152,38 +1188,42 @@ Function code:
       }
 
       set foo(v: number) {
-        this._x = v;
+        this._x = v + 1;
       }
     }
 
     cases.push({
       title: "Test getter/setter #1",
-      func: () => C,
+      func: () => {
+        const c = new C();
+        c.foo = 1;
+        return c.foo;
+      },
       snapshot: true,
-      expectResult: undefined,
+      expectResult: 2,
     });
   }
 
   {
     class C {
+      static i = 1;
       static get foo() {
-        throw new Error(
-          "This getter function should not be evaluated while closure serialization."
-        );
+        return C.i;
       }
 
       static set foo(v: number) {
-        throw new Error(
-          "This setter function should not be evaluated while closure serialization."
-        );
+        C.i += v;
       }
     }
 
     cases.push({
       title: "Test getter/setter #2",
-      func: () => C,
+      func: () => {
+        C.foo = 1;
+        return C.foo;
+      },
       snapshot: true,
-      expectResult: undefined,
+      expectResult: 2,
     });
   }
 
@@ -1197,9 +1237,9 @@ Function code:
 
     cases.push({
       title: "Test computed method name.",
-      func: () => C,
+      func: () => new C()[methodName](1),
       snapshot: true,
-      expectResult: undefined,
+      expectResult: 1,
     });
   }
 
@@ -1219,22 +1259,24 @@ Function code:
       title: "Test symbols #1",
       func: () => C,
       snapshot: true,
-      expectResult: undefined,
     });
   }
 
   {
     class C {
-      [Symbol.iterator](a: number) {
-        return a;
+      *[Symbol.iterator]() {
+        yield 1;
       }
     }
 
     cases.push({
       title: "Test Symbol.iterator",
-      func: () => C,
+      func: () => {
+        const c = new C();
+        return Array.from(c);
+      },
       snapshot: true,
-      expectResult: undefined,
+      expectResult: [1],
     });
   }
 
@@ -1243,7 +1285,6 @@ Function code:
       public n: number;
       constructor(n: number) {
         this.n = n;
-        console.log("DConstructor");
       }
       dMethod(x: number) {
         return x;
@@ -1255,7 +1296,6 @@ Function code:
     class C extends D {
       constructor(n: number) {
         super(n + 1);
-        console.log("CConstructor");
       }
       cMethod() {
         return (
@@ -1274,9 +1314,27 @@ Function code:
 
     cases.push({
       title: "Test class extension",
-      func: () => C,
+      func: () => {
+        const c = new C(0);
+        return [c.cMethod(), c.dVirtual()];
+      },
       snapshot: true,
-      expectResult: undefined,
+      expectResult: [
+        `function __f3(__0) {
+  return (function() {
+    return function /*dMethod*/(x) {
+                return x;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f3(__0) {
+  return (function() {
+    return function /*dMethod*/(x) {
+                return x;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}123`,
+        3,
+      ],
     });
   }
 
@@ -1285,7 +1343,6 @@ Function code:
       public n: number;
       constructor(n: number) {
         this.n = n;
-        console.log("AConstruction");
       }
       method(x: number) {
         return x;
@@ -1294,7 +1351,6 @@ Function code:
     class B extends A {
       constructor(n: number) {
         super(n + 1);
-        console.log("BConstructor");
       }
       method(n: number) {
         return 1 + super.method(n + 1);
@@ -1303,7 +1359,6 @@ Function code:
     class C extends B {
       constructor(n: number) {
         super(n * 2);
-        console.log("CConstructor");
       }
       method(n: number) {
         return 2 * super.method(n * 2);
@@ -1312,20 +1367,19 @@ Function code:
 
     cases.push({
       title: "Three level inheritance",
-      func: () => C,
+      func: () => new C(1).method(2),
       snapshot: true,
-      expectResult: undefined,
+      expectResult: new C(1).method(2),
     });
   }
 
   {
-    const sym = Symbol();
+    const sym = Symbol.for("sym");
 
     class A {
       public n: number;
       constructor(n: number) {
         this.n = n;
-        console.log("AConstruction");
       }
       public [sym](x: number) {
         return x;
@@ -1334,7 +1388,6 @@ Function code:
     class B extends A {
       constructor(n: number) {
         super(n + 1);
-        console.log("BConstructor");
       }
       // @ts-ignore
       public [sym](n: number) {
@@ -1344,7 +1397,6 @@ Function code:
     class C extends B {
       constructor(n: number) {
         super(n * 2);
-        console.log("CConstructor");
       }
       // @ts-ignore
       public [sym](n: number) {
@@ -1354,9 +1406,9 @@ Function code:
 
     cases.push({
       title: "Three level inheritance with symbols",
-      func: () => C,
+      func: () => new C(1)[sym](1),
       snapshot: true,
-      expectResult: undefined,
+      expectResult: new C(1)[sym](1),
     });
   }
 
@@ -1373,7 +1425,6 @@ Function code:
       }
       constructor(n: number) {
         this.n = n;
-        console.log("AConstruction");
       }
     }
     class B extends A {
@@ -1386,15 +1437,26 @@ Function code:
       }
       constructor(n: number) {
         super(n + 1);
-        console.log("BConstructor");
       }
     }
 
     cases.push({
       title: "Two level static inheritance",
-      func: () => B,
+      func: () =>
+        B.method(1) +
+        B[sym](1) +
+        new B(1).n +
+        A.method(1) +
+        A[sym](1) +
+        new A(1).n,
       snapshot: true,
-      expectResult: undefined,
+      expectResult:
+        B.method(1) +
+        B[sym](1) +
+        new B(1).n +
+        A.method(1) +
+        A[sym](1) +
+        new A(1).n,
     });
   }
 
@@ -1404,10 +1466,10 @@ Function code:
     cases.push({
       title: "Capture subset of properties #1",
       func: function () {
-        console.log(o.a);
+        return o.a;
       },
       snapshot: true,
-      expectResult: undefined,
+      expectResult: 1,
     });
   }
 
@@ -1417,10 +1479,10 @@ Function code:
     cases.push({
       title: "Capture subset of properties #1.1",
       func: function () {
-        console.log(o["a"]);
+        return o["a"];
       },
       snapshot: true,
-      expectResult: undefined,
+      expectResult: 1,
     });
   }
 
@@ -2823,7 +2885,7 @@ Function code:
       return whatever;
     },
     snapshot: true,
-    inputArguments: [{whatever: "hello"}],
+    inputArguments: [{ whatever: "hello" }],
     expectResult: "hello",
   });
 
@@ -2832,7 +2894,7 @@ Function code:
     func: async function f({ whatever }) {
       return whatever;
     },
-    inputArguments: [{whatever: "hello"}],
+    inputArguments: [{ whatever: "hello" }],
     expectResult: "hello",
     snapshot: true,
   });
@@ -2842,7 +2904,7 @@ Function code:
     // @ts-ignore
     func: ({ whatever }) => whatever,
     snapshot: true,
-    inputArguments: [{whatever: "hello"}],
+    inputArguments: [{ whatever: "hello" }],
     expectResult: "hello",
   });
 
@@ -2979,7 +3041,7 @@ Function code:
     // @ts-ignore
     func: async ({ whatever }) => whatever,
     snapshot: true,
-    inputArguments: [{whatever: "hello"}],
+    inputArguments: [{ whatever: "hello" }],
     expectResult: "hello",
   });
 
@@ -3054,9 +3116,11 @@ Function code:
     cases.push({
       title: "Respects package.json exports",
       func: reproHandler,
-      inputArguments: [{
-        message: "message in a bottle"
-      }],
+      inputArguments: [
+        {
+          message: "message in a bottle",
+        },
+      ],
       expectResult: "message in a bottle",
       snapshot: true,
     });
@@ -3143,14 +3207,12 @@ Function code:
     it(
       test.title,
       asyncTest(async () => {
-        
         // Run pre-actions.
         if (test.pre) {
           test.pre();
         }
 
         try {
-
           // Invoke the test case.
           if (test.expectText !== undefined || test.snapshot) {
             const sf = await serializeFunctionTest(test);
@@ -3160,9 +3222,12 @@ Function code:
             if (test.snapshot) {
               expect(sf).toMatchSnapshot();
             }
-  
+
             if ("expectResult" in test || "expectThrow" in test) {
-              const fileName = path.join(__dirname, test.title.replace(/\//g, "_") + ".js");
+              const fileName = path.join(
+                __dirname,
+                test.title.replace(/\//g, "_")
+              );
               try {
                 fs.writeFileSync(fileName, sf.text);
                 const module = require(fileName);
@@ -3174,12 +3239,12 @@ Function code:
                 expect(result).toEqual(test.expectResult);
               } catch (err) {
                 if ("expectThrow" in test) {
-                  expect(err).toEqual(test.expectThrow)
+                  expect(err).toEqual(test.expectThrow);
                 } else {
                   throw err;
                 }
               } finally {
-                if(!test.noClean) {
+                if (!test.noClean) {
                   fs.rmSync(fileName);
                 }
               }
@@ -3188,7 +3253,7 @@ Function code:
             const message = await assertAsyncThrows(async () => {
               await serializeFunctionTest(test);
             });
-  
+
             // replace real locations with (0,0) so that our test baselines do not need to
             // updated any time this file changes.
             const regex = /\([0-9]+,[0-9]+\)/g;
@@ -3203,7 +3268,6 @@ Function code:
             return;
           }
         }
-
       })
     );
 

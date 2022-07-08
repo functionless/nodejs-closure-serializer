@@ -63,7 +63,6 @@ const project = new typescript.TypeScriptProject({
     jestConfig: {
       collectCoverage: false,
       coveragePathIgnorePatterns: ["/test/", "/node_modules/"],
-      modulePathIgnorePatterns: ["/test/**/*.js"],
       globals: {
         "ts-jest": {
           isolatedModules: true,
