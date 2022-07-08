@@ -16,7 +16,6 @@ import * as ts from "typescript";
 import * as log from "../log";
 import { SerializeFunctionArgs } from "./serializeClosure";
 import * as utils from "./utils";
-import { getFunctionInternals } from "./v8_v11andHigher";
 
 /** @internal */
 export interface ParsedFunctionCode {
@@ -36,9 +35,6 @@ export interface ParsedFunctionCode {
 
   // Whether or not this was an arrow function.
   isArrowFunction: boolean;
-
-  // contains the value of `this` if this function was a native, bound function.
-  boundThis: any;
 }
 
 /** @internal */
@@ -110,10 +106,9 @@ const nodeModuleGlobals: { [key: string]: boolean } = {
 /** @internal */
 export async function parseFunction(
   funcString: string,
-  func: Function,
   args: SerializeFunctionArgs
 ): Promise<[string, ParsedFunction]> {
-  const [error, functionCode] = await parseFunctionCode(funcString, func);
+  const [error, functionCode] = await parseFunctionCode(funcString);
   if (error) {
     return [error, <any>undefined];
   }
@@ -153,30 +148,17 @@ export async function parseFunction(
 }
 
 async function parseFunctionCode(
-  funcString: string,
-  func: Function
+  funcString: string
 ): Promise<[string, ParsedFunctionCode]> {
   if (funcString.startsWith("[Function:")) {
     return ["the function form was not understood.", <any>undefined];
   }
-  let boundThis: any;
 
   // Split this constant out so that if this function *itself* is closure serialized,
   // it will not be thought to be native code itself.
   const nativeCodeString = "[native " + "code]";
   if (funcString.indexOf(nativeCodeString) !== -1) {
-    const internals = await getFunctionInternals(func);
-    if (internals?.boundThis) {
-      boundThis = internals.boundThis;
-    }
-    if (internals?.targetFunction) {
-      funcString = internals.targetFunction.toString();
-      if (!funcString.startsWith("function")) {
-        funcString = `function ${funcString}`;
-      }
-    } else {
-      return ["it was a native code function.", <any>undefined];
-    }
+    return ["it was a native code function.", <any>undefined];
   }
 
   // There are three general forms of node toString'ed Functions we're trying to find out here.
@@ -199,10 +181,7 @@ async function parseFunctionCode(
   //      function)
 
   if (tryParseAsArrowFunction(funcString)) {
-    return [
-      "",
-      { funcExprWithoutName: funcString, isArrowFunction: true, boundThis },
-    ];
+    return ["", { funcExprWithoutName: funcString, isArrowFunction: true }];
   }
 
   // First check to see if this startsWith 'class'.  If so, this is definitely a class.  This
@@ -244,14 +223,12 @@ async function parseFunctionCode(
         ? makeFunctionDeclaration(
             "constructor() { super(); }",
             /*isAsync:*/ false,
-            /*isFunctionDeclaration:*/ false,
-            boundThis
+            /*isFunctionDeclaration:*/ false
           )
         : makeFunctionDeclaration(
             "constructor() { }",
             /*isAsync:*/ false,
-            /*isFunctionDeclaration:*/ false,
-            boundThis
+            /*isFunctionDeclaration:*/ false
           );
     }
 
@@ -264,8 +241,7 @@ async function parseFunctionCode(
     return makeFunctionDeclaration(
       constructorCode,
       /*isAsync:*/ false,
-      /*isFunctionDeclaration: */ false,
-      boundThis
+      /*isFunctionDeclaration: */ false
     );
   }
 
@@ -283,8 +259,7 @@ async function parseFunctionCode(
     return makeFunctionDeclaration(
       trimmed,
       isAsync,
-      /*isFunctionDeclaration: */ false,
-      boundThis
+      /*isFunctionDeclaration: */ false
     );
   }
 
@@ -293,8 +268,7 @@ async function parseFunctionCode(
     return makeFunctionDeclaration(
       trimmed,
       isAsync,
-      /*isFunctionDeclaration: */ false,
-      boundThis
+      /*isFunctionDeclaration: */ false
     );
   }
 
@@ -303,8 +277,7 @@ async function parseFunctionCode(
     return makeFunctionDeclaration(
       trimmed,
       isAsync,
-      /*isFunctionDeclaration: */ true,
-      boundThis
+      /*isFunctionDeclaration: */ true
     );
   }
 
@@ -314,8 +287,7 @@ async function parseFunctionCode(
   return makeFunctionDeclaration(
     funcString,
     isAsync,
-    /*isFunctionDeclaration: */ false,
-    boundThis
+    /*isFunctionDeclaration: */ false
   );
 }
 
@@ -335,8 +307,7 @@ function tryParseAsArrowFunction(toParse: string): boolean {
 function makeFunctionDeclaration(
   v: string,
   isAsync: boolean,
-  isFunctionDeclaration: boolean,
-  boundThis: any
+  isFunctionDeclaration: boolean
 ): [string, ParsedFunctionCode] {
   let prefix = isAsync ? "async " : "";
   prefix += "function ";
@@ -362,7 +333,6 @@ function makeFunctionDeclaration(
         funcExprWithName: prefix + "__computed" + v,
         functionDeclarationName: undefined,
         isArrowFunction: false,
-        boundThis,
       },
     ];
   }
@@ -385,7 +355,6 @@ function makeFunctionDeclaration(
       funcExprWithName: prefix + funcName + v,
       functionDeclarationName: isFunctionDeclaration ? nameChunk : undefined,
       isArrowFunction: false,
-      boundThis,
     },
   ];
 }

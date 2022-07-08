@@ -66,8 +66,6 @@ export interface FunctionInfo extends ObjectInfo {
   // (like senchalabs: https://github.com/senchalabs/connect/blob/fa8916e6350e01262e86ccee82f490c65e04c728/index.js#L232-L241)
   // will introspect function param count to decide what to do.
   paramCount: number;
-
-  boundThis?: any;
 }
 
 // Similar to PropertyDescriptor.  Helps describe an Entry in the case where it is not
@@ -409,11 +407,7 @@ async function analyzeFunctionInfoAsync(
     // either a "function (...) { ... }" form, or a "(...) => ..." form.  In other words, all
     // 'funky' functions (like classes and whatnot) will be transformed to reasonable forms we can
     // process down the pipeline.
-    const [error, parsedFunction] = await parseFunction(
-      functionString,
-      func,
-      args
-    );
+    const [error, parsedFunction] = await parseFunction(functionString, args);
     if (error) {
       throwSerializationError(func, context, error);
     }
@@ -441,30 +435,10 @@ async function analyzeFunctionInfoAsync(
       usesNonLexicalThis: parsedFunction.usesNonLexicalThis,
       name: functionDeclarationName,
       paramCount: func.length,
-      boundThis: parsedFunction.boundThis,
     };
 
     const proto = Object.getPrototypeOf(func);
     const isAsyncFunction = await computeIsAsyncFunction(func);
-
-    if (parsedFunction.boundThis) {
-      const thisEntry = await getOrCreateEntryAsync(
-        parsedFunction.boundThis,
-        context,
-        args,
-        logInfo
-      );
-      const name = await getOrCreateNameEntryAsync(
-        "__boundThis",
-        undefined,
-        context,
-        args,
-        logInfo
-      );
-      capturedValues.set(name, {
-        entry: thisEntry,
-      });
-    }
 
     // Ensure that the prototype of this function is properly serialized as well. We only need to do
     // this for functions with a custom prototype (like a derived class constructor, or a function

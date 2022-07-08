@@ -245,60 +245,6 @@ async function getRuntimeIdForFunctionAsync(
   }
 }
 
-export interface FunctionInternals {
-  boundThis?: any;
-  boundArgs?: any;
-  targetFunction?: any;
-  prototype?: any;
-}
-
-/**
- * Extracts the `[[BoundThis]]`, `[[BoundArgs]], `[[TargetFunction]] and `[[Prototype]]` internal
- * properties from a bound function, i.e. a function created with `.bind`:
- *
- * ```ts
- * const a = new A();
- * const f = a.f.bind(a);
- *
- * const [boundThis, target, prototype] = await unBindFunction(f);
- * ```
- */
-export async function getFunctionInternals(
-  func: Function
-): Promise<FunctionInternals | undefined> {
-  if (!func.name.startsWith("bound ")) {
-    return undefined;
-  }
-  const functionId = await getRuntimeIdForFunctionAsync(func);
-  const { internalProperties } = await runtimeGetPropertiesAsync(
-    functionId,
-    true
-  );
-
-  return Promise.all([
-    getInternalProperty(internalProperties, "[[BoundThis]]"),
-    getInternalProperty(internalProperties, "[[BoundArgs]]"),
-    getInternalProperty(internalProperties, "[[TargetFunction]]"),
-    getInternalProperty(internalProperties, "[[Prototype]]"),
-  ]).then(([boundThis, boundArgs, targetFunction, prototype]) => ({
-    boundThis,
-    boundArgs,
-    targetFunction,
-    prototype,
-  }));
-}
-
-async function getInternalProperty(
-  internalProperties: inspector.Runtime.InternalPropertyDescriptor[],
-  name: string
-): Promise<unknown | undefined> {
-  const prop = internalProperties.find((prop) => prop.name === name);
-  if (prop?.value?.objectId) {
-    return getValueForObjectId(prop.value.objectId);
-  }
-  return undefined;
-}
-
 async function runtimeGetPropertiesAsync(
   objectId: inspector.Runtime.RemoteObjectId,
   ownProperties: boolean | undefined
