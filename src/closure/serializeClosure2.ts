@@ -64,6 +64,14 @@ export async function serializeFunction(
   func: Function,
   args: SerializeFunctionArgs = {}
 ): Promise<string> {
+  const emptyFile = ts.createSourceFile(
+    "",
+    "function () {}",
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.JS
+  );
+
   /**
    * Maintains a lookup table for all globally known values. These values will not be serialized if detected as free variables.
    *
@@ -111,7 +119,7 @@ export async function serializeFunction(
 
   const printer = ts.createPrinter({ newLine: ts.NewLineKind.LineFeed });
 
-  function emit(stmts: ts.Statement[], file: ts.SourceFile) {
+  function emit(stmts: ts.Statement[], file: ts.SourceFile = emptyFile) {
     statements.push(
       ...stmts.map((stmt) =>
         printer.printNode(ts.EmitHint.Unspecified, stmt, file).trim()
@@ -172,13 +180,7 @@ export async function serializeFunction(
           ),
         ],
         // dummy
-        ts.createSourceFile(
-          "",
-          "function () {}",
-          ts.ScriptTarget.Latest,
-          true,
-          ts.ScriptKind.JS
-        )
+        emptyFile
       );
       return ts.factory.createIdentifier(varName);
     }
@@ -294,7 +296,7 @@ export async function serializeFunction(
 
               return {
                 variableName: node.text,
-                outerExpr: await serializeValue(val, ids),
+                outerExpr: await serializeValue(val, { illegalNames: ids }),
               };
             })()
           );
@@ -368,7 +370,9 @@ export async function serializeFunction(
 
         const boundThisName = makeName("_self");
         const boundThis =
-          "this" in props ? await serializeValue(props.this, ids) : undefined;
+          "this" in props
+            ? await serializeValue(props.this, { illegalNames: ids })
+            : undefined;
 
         let superName: string | undefined;
         let superValue: ts.Expression | undefined;
@@ -392,7 +396,7 @@ export async function serializeFunction(
                 } => ts.isIdentifier(type.expression)
               )?.expression.text;
             superName = makeName(extendsClause ?? "_super");
-            superValue = await serializeValue(prototype, ids);
+            superValue = await serializeValue(prototype, { illegalNames: ids });
           }
         }
 
@@ -515,7 +519,13 @@ export async function serializeFunction(
 
       async function serializeValue(
         value: any,
-        exclude: Set<string>
+        props: {
+          illegalNames: Set<string>;
+          /**
+           * Names of properties to omit when serializing objects.
+           */
+          omitProperties?: Set<string>;
+        }
       ): Promise<ts.Expression> {
         if (args.preSerializeValue) {
           value = args.preSerializeValue(value);
@@ -535,7 +545,7 @@ export async function serializeFunction(
         }
 
         if (!valueCache.has(value)) {
-          const variableName = nextVarName(exclude);
+          const variableName = nextVarName(props.illegalNames);
           valueCache.set(value, ts.factory.createIdentifier(variableName));
           return doSerialize(variableName);
         } else {
@@ -544,48 +554,82 @@ export async function serializeFunction(
 
         async function doSerialize(variableName: string) {
           if (typeof value === "function") {
-            if (value.name === "Object") {
-              const id = FunctionGetScriptId(value);
-              const source = FunctionGetScriptSource(value);
-              console.log(id, source);
+            if (value === Object) {
+              return ts.factory.createIdentifier("Object");
+            } else if (value === Function) {
+              return ts.factory.createIdentifier("Function");
+            } else if (value === String) {
+              return ts.factory.createIdentifier("String");
+            } else if (value === Array) {
+              return ts.factory.createIdentifier("Array");
+            } else if (value === Number) {
+              return ts.factory.createIdentifier("Number");
             }
+
+            // const prototype =
+            //   value.prototype.constructor !== value
+            //     ? // this function has a custom prototype (i.e. one that is not the base Object.prototype)
+            //       // we should serialize that and set it on the function
+            //       await serializeValue(value.prototype, {
+            //         ...props,
+            //         omitProperties: new Set(["constructor"]),
+            //       })
+            //     : undefined;
+
             return serializeClosure(value, {
               variableName,
             });
+
+            // if (prototype) {
+            //   emit([
+            //     ts.factory.createExpressionStatement(
+            //       ts.factory.createBinaryExpression(
+            //         ts.factory.createPropertyAccessExpression(
+            //           closure,
+            //           "prototype"
+            //         ),
+            //         ts.factory.createToken(ts.SyntaxKind.EqualsToken),
+            //         prototype
+            //       )
+            //     ),
+            //   ]);
+            // }
+
+            // return closure;
           } else if (Array.isArray(value)) {
             const elements = [];
             for (const item of value) {
-              elements.push(await serializeValue(item, exclude));
+              elements.push(await serializeValue(item, props));
             }
             return ts.factory.createArrayLiteralExpression(elements);
           } else if (typeof value === "object") {
-            const prototype = Object.getPrototypeOf(value);
-            let objectClass;
-            if (typeof prototype?.constructor === "function") {
-              if (
-                prototype.constructor !== Function &&
-                prototype.constructor !== Function.prototype &&
-                prototype.constructor !== Object &&
-                prototype.constructor !== Object.prototype
-              ) {
-                objectClass = await serializeValue(
-                  prototype.constructor,
-                  exclude
-                );
-              } else {
-                // ordinary function
-                prototype;
-              }
+            if (value === Object.prototype) {
+              return createPropertyChain("Object", "prototype");
+            } else if (value === Function.prototype) {
+              return createPropertyChain("Function", "prototype");
+            } else if (value === String.prototype) {
+              return createPropertyChain("String", "prototype");
+            } else if (value === Array.prototype) {
+              return createPropertyChain("Array", "prototype");
+            } else if (value === Number.prototype) {
+              return createPropertyChain("Number", "prototype");
             }
 
-            const props = [];
-            for (const [k, v] of Object.entries(value)) {
-              props.push(
-                ts.factory.createPropertyAssignment(
-                  k,
-                  await serializeValue(v, exclude)
-                )
-              );
+            const prototype = Object.getPrototypeOf(value);
+            const objectClass = prototype
+              ? await serializeValue(prototype, props)
+              : undefined;
+
+            const properties = [];
+            for (const ownPropertyName of Object.keys(value)) {
+              if (!props.omitProperties?.has(ownPropertyName)) {
+                properties.push(
+                  ts.factory.createPropertyAssignment(
+                    ownPropertyName,
+                    await serializeValue(value[ownPropertyName], props)
+                  )
+                );
+              }
             }
 
             emit(
@@ -597,7 +641,7 @@ export async function serializeFunction(
                       variableName,
                       undefined,
                       undefined,
-                      ts.factory.createObjectLiteralExpression(props)
+                      ts.factory.createObjectLiteralExpression(properties)
                     ),
                   ])
                 ),
@@ -612,10 +656,7 @@ export async function serializeFunction(
                           undefined,
                           [
                             ts.factory.createIdentifier(variableName),
-                            ts.factory.createPropertyAccessExpression(
-                              objectClass,
-                              "prototype"
-                            ),
+                            objectClass,
                           ]
                         )
                       ),
@@ -846,6 +887,13 @@ function createParameterDeclaration(name: string) {
     undefined,
     undefined,
     name
+  );
+}
+
+function createPropertyChain(first: string, ...rest: [string, ...string[]]) {
+  return rest.reduce(
+    (expr, name) => ts.factory.createPropertyAccessExpression(expr, name),
+    ts.factory.createIdentifier(first) as ts.Expression
   );
 }
 
@@ -1323,25 +1371,55 @@ export const FunctionGetScriptSourcePosition = new Function(
   "return %FunctionGetScriptSourcePosition(func);"
 );
 
-// function busyWaitPromise<T>(promise: Promise<T>): T {
-//   let result: {
-//     ok?: T;
-//     error?: any;
-//   } = {};
-
-//   while (!("ok" in result || "error" in result)) {
-//     // https://github.com/nodejs/node/issues/40054#issuecomment-917643826
-//     vm.runInNewContext(
-//       "promise.then((ok) => (result.ok = ok )).catch((error) => (result.error = error))",
-//       { promise, result },
-//       {
-//         microtaskMode: "afterEvaluate",
+// var __extends =
+//   (this && this.__extends) ||
+//   (function () {
+//     var extendStatics = function (d, b) {
+//       extendStatics =
+//         Object.setPrototypeOf ||
+//         ({ __proto__: [] } instanceof Array &&
+//           function (d, b) {
+//             d.__proto__ = b;
+//           }) ||
+//         function (d, b) {
+//           for (var p in b)
+//             if (Object.prototype.hasOwnProperty.call(b, p)) d[p] = b[p];
+//         };
+//       return extendStatics(d, b);
+//     };
+//     return function (d, b) {
+//       if (typeof b !== "function" && b !== null)
+//         throw new TypeError(
+//           "Class extends value " + String(b) + " is not a constructor or null"
+//         );
+//       extendStatics(d, b);
+//       function __() {
+//         this.constructor = d;
 //       }
-//     );
+//       d.prototype =
+//         b === null
+//           ? Object.create(b)
+//           : ((__.prototype = b.prototype), new __());
+//     };
+//   })();
+
+// var A = /** @class */ (function () {
+//   function A() {
+//     this.a = "a";
 //   }
-//   if (result.error) {
-//     throw result.error;
-//   } else {
-//     return result.ok!;
+//   A.foo = function () {};
+//   A.prototype.foo = function () {};
+//   return A;
+// })();
+// var B = /** @class */ (function (_super) {
+//   __extends(B, _super);
+//   function B() {
+//     var _this = _super.call(this) || this;
+//     _this.b = "b";
+//     return _this;
 //   }
-// }
+//   B.foo = function () {};
+//   B.prototype.foo = function () {};
+//   B.prototype.bar = function () {};
+//   return B;
+// })(A);

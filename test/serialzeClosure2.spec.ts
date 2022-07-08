@@ -188,7 +188,7 @@ test("super class method", () => {
   });
 });
 
-test("class with prototype swapped", () => {
+test("call method on class with prototype swapped", () => {
   class A {
     constructor(readonly internal: string) {}
 
@@ -206,10 +206,33 @@ test("class with prototype swapped", () => {
 
   class C extends A {}
   Object.setPrototypeOf(C, B);
+  Object.setPrototypeOf(C.prototype, B.prototype);
 
   return testCase({
     closure: () => new C("value").foo(),
     expectResult: "value b",
+  });
+});
+
+test("call static method on class with prototype swapped", () => {
+  class A {
+    static foo() {
+      return "A";
+    }
+  }
+  class B {
+    static foo() {
+      return "B";
+    }
+  }
+
+  class C extends A {}
+  Object.setPrototypeOf(C, B);
+  Object.setPrototypeOf(C.prototype, B.prototype);
+
+  return testCase({
+    closure: () => C.foo(),
+    expectResult: "B",
   });
 });
 
@@ -237,7 +260,7 @@ test("class mix-in", () => {
   });
 });
 
-test("traditional function prototype class", () => {
+test("call method on traditional function prototype class", () => {
   function Animal(noise: string) {
     this.noise = noise;
   }

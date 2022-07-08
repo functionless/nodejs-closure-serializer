@@ -111,10 +111,56 @@ exports.handler = v2"
 
 exports[`arrow function nested within a function 1`] = `
 "var v2 = { internal: \\"value\\" };
+Object.setPrototypeOf(v2, Object.prototype);
 const v1 = (_self => function foo() {
     return ((val) => \`\${val} \${this.internal}\`)(\\"hello\\");
 }.bind(_self))(v2);
 exports.handler = v1"
+`;
+
+exports[`call method on class with prototype swapped 1`] = `
+"const v2 = (() => class B {
+    constructor(internal) {
+        this.internal = internal;
+    }
+    foo() {
+        return \`\${this.internal} b\`;
+    }
+})();
+const v1 = (A => class C extends A {
+})(v2);
+const v3 = (C => () => new C(\\"value\\").foo())(v1);
+exports.handler = v3"
+`;
+
+exports[`call method on traditional function prototype class 1`] = `
+"const v5 = (() => function () {
+    return this.noise;
+})();
+var v3 = { speak: v5 };
+Object.setPrototypeOf(v3, Object.prototype);
+var v2 = { noise: \\"bork\\" };
+Object.setPrototypeOf(v2, v3);
+const v6 = (() => function Animal(noise) {
+    this.noise = noise;
+})();
+const v1 = (Animal => function Dog(noise) {
+    Animal.call(this, \`bark \${noise}\`);
+})(v6);
+const v7 = ((Dog, animal) => () => [new Dog(\\"woof\\").speak(), animal.speak()])(v1, v2);
+exports.handler = v7"
+`;
+
+exports[`call static method on class with prototype swapped 1`] = `
+"const v2 = (() => class B {
+    static foo() {
+        return \\"B\\";
+    }
+})();
+const v1 = (A => class C extends A {
+})(v2);
+const v3 = (C => () => C.foo())(v1);
+exports.handler = v3"
 `;
 
 exports[`call the exports.handler if isFactoryFunction 1`] = `
@@ -159,53 +205,48 @@ exports[`capturing a reference to a native bound async method 1`] = `
     });
 })();
 var v4 = { internal: \\"value\\" };
+Object.setPrototypeOf(v4, Object.prototype);
 const v3 = ((_self, __awaiter) => function foo() {
     return __awaiter(this, void 0, void 0, function* () {
         return this.internal;
     });
 }.bind(_self))(v4, v2);
-const v5 = (func => () => func())(v3);
-exports.handler = v5"
+const v6 = (func => () => func())(v3);
+exports.handler = v6"
 `;
 
 exports[`capturing a reference to a native bound function 1`] = `
 "var v3 = { internal: \\"value\\" };
+Object.setPrototypeOf(v3, Object.prototype);
 const v2 = (_self => function foo() {
     return this.internal;
 }.bind(_self))(v3);
-const v4 = (f => () => f())(v2);
-exports.handler = v4"
+const v5 = (f => () => f())(v2);
+exports.handler = v5"
 `;
 
 exports[`capturing a reference to a native bound generator method 1`] = `
-"const v4 = (() => class F {
-    constructor() {
-        this.i = 0;
-    }
-    *foo() {
-        while ((this.i += 1) <= 1) {
-            yield \\"hello\\";
-        }
-    }
-})();
+"var v4 = {};
+Object.setPrototypeOf(v4, Object.prototype);
 var v3 = { i: 0 };
-Object.setPrototypeOf(v3, v4.prototype);
+Object.setPrototypeOf(v3, v4);
 const v2 = (_self => function* foo() {
     while ((this.i += 1) <= 1) {
         yield \\"hello\\";
     }
 }.bind(_self))(v3);
-const v5 = (func => () => func())(v2);
-exports.handler = v5"
+const v6 = (func => () => func())(v2);
+exports.handler = v6"
 `;
 
 exports[`capturing a reference to a native bound method 1`] = `
 "var v3 = { internal: \\"value\\" };
+Object.setPrototypeOf(v3, Object.prototype);
 const v2 = (_self => function foo(a, { b }, [c]) {
     return [this.internal, a, b, c];
 }.bind(_self))(v3);
-const v4 = (func => () => func(\\"a\\", { b: \\"b\\" }, [\\"c\\"]))(v2);
-exports.handler = v4"
+const v5 = (func => () => func(\\"a\\", { b: \\"b\\" }, [\\"c\\"]))(v2);
+exports.handler = v5"
 `;
 
 exports[`capturing a reference to a string 1`] = `
@@ -227,53 +268,23 @@ exports.handler = v3"
 `;
 
 exports[`class method 1`] = `
-"const v2 = (() => class Foo {
-    constructor(internal) {
-        this.internal = internal;
-    }
-    foo() {
-        return this.internal;
-    }
-})();
+"var v2 = {};
+Object.setPrototypeOf(v2, Object.prototype);
 var v1 = { internal: \\"hello\\" };
-Object.setPrototypeOf(v1, v2.prototype);
-const v3 = (foo => () => foo.foo())(v1);
-exports.handler = v3"
-`;
-
-exports[`class mix-in 1`] = `
-"const v3 = (() => class {
-    constructor(internal) {
-        this.internal = internal;
-    }
-})();
-const v2 = (Base => class extends Base {
-    constructor(internal) {
-        super(internal);
-    }
-    foo() {
-        return this.internal;
-    }
-})(v3);
-var v1 = { internal: \\"value\\" };
-Object.setPrototypeOf(v1, v2.prototype);
-const v4 = (a => () => a.foo())(v1);
+Object.setPrototypeOf(v1, v2);
+const v4 = (foo => () => foo.foo())(v1);
 exports.handler = v4"
 `;
 
-exports[`class with prototype swapped 1`] = `
-"const v2 = (() => class B {
-    constructor(internal) {
-        this.internal = internal;
-    }
-    foo() {
-        return \`\${this.internal} b\`;
-    }
-})();
-const v1 = (A => class C extends A {
-})(v2);
-const v3 = (C => () => new C(\\"value\\").foo())(v1);
-exports.handler = v3"
+exports[`class mix-in 1`] = `
+"var v3 = {};
+Object.setPrototypeOf(v3, Object.prototype);
+var v2 = {};
+Object.setPrototypeOf(v2, v3);
+var v1 = { internal: \\"value\\" };
+Object.setPrototypeOf(v1, v2);
+const v5 = (a => () => a.foo())(v1);
+exports.handler = v5"
 `;
 
 exports[`should not capture global values as free variables 1`] = `
@@ -404,33 +415,14 @@ exports.handler = v1"
 `;
 
 exports[`super class method 1`] = `
-"const v3 = (() => class Foo {
-    constructor(internal) {
-        this.internal = internal;
-    }
-    foo() {
-        return this.internal;
-    }
-})();
-const v2 = (Foo => class Bar extends Foo {
-})(v3);
+"var v3 = {};
+Object.setPrototypeOf(v3, Object.prototype);
+var v2 = {};
+Object.setPrototypeOf(v2, v3);
 var v1 = { internal: \\"hello\\" };
-Object.setPrototypeOf(v1, v2.prototype);
-const v4 = (foo => () => foo.foo())(v1);
-exports.handler = v4"
-`;
-
-exports[`traditional function prototype class 1`] = `
-"const v3 = (() => function Animal(noise) {
-    this.noise = noise;
-})();
-var v2 = { noise: \\"bork\\" };
-Object.setPrototypeOf(v2, v3.prototype);
-const v1 = (Animal => function Dog(noise) {
-    Animal.call(this, \`bark \${noise}\`);
-})(v3);
-const v4 = ((Dog, animal) => () => [new Dog(\\"woof\\").speak(), animal.speak()])(v1, v2);
-exports.handler = v4"
+Object.setPrototypeOf(v1, v2);
+const v5 = (foo => () => foo.foo())(v1);
+exports.handler = v5"
 `;
 
 exports[`value captured multiple times is only emitted once 1`] = `

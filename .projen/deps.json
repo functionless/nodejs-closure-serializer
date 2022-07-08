@@ -1,10 +1,6 @@
 {
   "dependencies": [
     {
-      "name": "@types/bindings",
-      "type": "build"
-    },
-    {
       "name": "@types/jest",
       "type": "build"
     },
@@ -127,15 +123,7 @@
       "type": "peer"
     },
     {
-      "name": "bindings",
-      "type": "runtime"
-    },
-    {
       "name": "immutable",
-      "type": "runtime"
-    },
-    {
-      "name": "nan",
       "type": "runtime"
     },
     {
