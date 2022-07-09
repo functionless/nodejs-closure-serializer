@@ -14,7 +14,7 @@
 
 /* eslint-disable */
 
-import { serializeFunction2 } from "../src";
+import { serializeFunction } from "../src";
 import { assertAsyncThrows, asyncTest } from "./util";
 import { platformIndependentEOL } from "./constants";
 import ts from "typescript";
@@ -3219,13 +3219,13 @@ Function code:
   }
   async function serializeFunctionTest(test: ClosureCase) {
     if (test.func) {
-      return await serializeFunction2(test.func, {
+      return await serializeFunction(test.func, {
         preProcess: test.transformers,
       });
     } else if (test.factoryFunc) {
-      return await serializeFunction2(test.factoryFunc!, {
+      return await serializeFunction(test.factoryFunc!, {
         isFactoryFunction: true,
-        transformers: test.transformers,
+        preProcess: test.transformers,
       });
     } else {
       throw new Error("Have to supply [func] or [factoryFunc]!");
