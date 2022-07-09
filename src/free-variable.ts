@@ -2,6 +2,8 @@ import inspector from "inspector";
 import util from "util";
 import { Set as iSet } from "immutable";
 import ts from "typescript";
+import { getBindingNames } from "./binding-names";
+import { collectEachChild } from "./collect-each-child";
 import {
   CallFunctionSession,
   EvaluationSession,
@@ -9,6 +11,124 @@ import {
   inspectorSession,
 } from "./inspector-session";
 import { getInternalProperties } from "./internal-properties";
+
+export interface FreeVariable<T = any> {
+  /**
+   * Name of the free variable passed in to the closure initialization.
+   *
+   * ```ts
+   * function f1 = (function(name) {
+   * //                      ^ lexicalName
+   * })
+   * ```
+   */
+  variableName: string;
+  /**
+   * A {@link ts.Expression} for the value passed into the closure initialization.
+   *
+   * ```ts
+   * const f1 = (function() { .. })(value)
+   * //                             ^ outerNode
+   * ```
+   */
+  variableValue: T;
+}
+
+/**
+ * Walks the tree in evaluation order, collects all variable names from
+ * Function/Class Declarations, and VariableStatements.
+ *
+ * All {@link ts.Identifier} expressions point to values not in {@link lexicalScope}
+ * are resolved with {@link getFreeVariable}..
+ *
+ * @param node TypeScript AST tree node to walk
+ * @param lexicalScope accumulated names at this point in the evaluate
+ * @returns an array of a Promise resolving each {@link FreeVariable}s referenced by {@link node}
+ */
+export function discoverFreeVariables(
+  func: Function,
+  /**
+   * The current node being visited.
+   */
+  node: ts.Node,
+  /**
+   * A Set of all names known at this point in the AST.
+   */
+  lexicalScope: iSet<string> = iSet()
+): Promise<FreeVariable | undefined>[] {
+  return _discoverFreeVariables(node, lexicalScope);
+
+  function _discoverFreeVariables(
+    /**
+     * The current node being visited.
+     */
+    node: ts.Node,
+    /**
+     * A Set of all names known at this point in the AST.
+     */
+    lexicalScope: iSet<string> = iSet()
+  ): Promise<FreeVariable | undefined>[] {
+    if (
+      ts.isFunctionDeclaration(node) ||
+      ts.isFunctionExpression(node) ||
+      ts.isArrowFunction(node) ||
+      ts.isConstructorDeclaration(node)
+    ) {
+      return collectEachChild(
+        node,
+        lexicalScope.concat(
+          iSet([
+            ...(node.name && ts.isIdentifier(node.name)
+              ? [node.name.text]
+              : []),
+            ...node.parameters.flatMap(getBindingNames),
+          ])
+        ),
+        _discoverFreeVariables
+      );
+    } else if (ts.isBlock(node)) {
+      // first extract all hoisted functions
+      lexicalScope = lexicalScope.concat(getBindingNames(node));
+      return node.statements.flatMap((stmt) => {
+        const freeVariables = _discoverFreeVariables(stmt, lexicalScope);
+        if (ts.isVariableStatement(stmt) || ts.isClassDeclaration(stmt)) {
+          // update the current lexical scope with the variable declarations
+          lexicalScope = lexicalScope.concat(getBindingNames(stmt));
+        }
+        return freeVariables;
+      });
+    } else if (ts.isVariableDeclaration(node)) {
+      return collectEachChild(
+        node,
+        lexicalScope.concat(getBindingNames(node.name)),
+        _discoverFreeVariables
+      );
+    } else if (ts.isVariableDeclarationList(node)) {
+      return node.declarations.flatMap((variableDecl) =>
+        _discoverFreeVariables(
+          variableDecl,
+          lexicalScope.concat(getBindingNames(variableDecl.name))
+        )
+      );
+    } else if (isFreeVariable(node, lexicalScope)) {
+      return [
+        // capture the free
+        (async () => {
+          const val = await getFreeVariable(func, node.text, false);
+
+          return {
+            variableName: node.text,
+            // serialize
+            variableValue: val,
+          };
+        })(),
+        ...collectEachChild(node, lexicalScope, _discoverFreeVariables),
+      ];
+    } else {
+      return collectEachChild(node, lexicalScope, _discoverFreeVariables);
+    }
+  }
+}
 
 /**
  * Determines if a ts.Identifier in a Class or Function points to a free variable (i.e. a value outside of its scope).

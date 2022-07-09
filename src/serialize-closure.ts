@@ -1,12 +1,19 @@
 import v8 from "v8";
+v8.setFlagsFromString("--allow-natives-syntax");
 
-import { Set as iSet } from "immutable";
 import ts from "typescript";
-import { getFreeVariable, isFreeVariable } from "./free-variable";
+import { discoverFreeVariables, FreeVariable } from "./free-variable";
+import { discoverFunctionIdentifiers } from "./function-identifiers";
 import { getFunctionInternals } from "./function-internals";
 import { parseFunctionString } from "./parse-function";
-import { isBoundFunction, isNativeFunction } from "./util";
-v8.setFlagsFromString("--allow-natives-syntax");
+import {
+  createParameterDeclaration,
+  createVarStatement,
+  isBoundFunction,
+  isNativeFunction,
+  nameGenerator,
+  transform,
+} from "./util";
 
 export interface SerializeFunctionProps {
   /**
@@ -159,7 +166,7 @@ export async function serializeFunction(
       // walk the AST and resolve any free variables - i.e. any ts.Identifiers that point
       // to a value outside of the closure's scope.
       const freeVariables = (
-        await Promise.all(discoverFreeVariables(funcAST))
+        await Promise.all(discoverFreeVariables(func, funcAST))
       ).filter((a): a is Exclude<typeof a, undefined> => a !== undefined);
 
       // when naming variables,
@@ -472,8 +479,6 @@ export async function serializeFunction(
         }
       }
 
-      async function hoistVariable(name: string) {}
-
       async function createClosureStatement(
         closureName: string,
         stmt: ts.Statement,
@@ -657,190 +662,8 @@ export async function serializeFunction(
           }
         }
       }
-
-      interface FreeVariable<T = any> {
-        /**
-         * Name of the free variable passed in to the closure initialization.
-         *
-         * ```ts
-         * function f1 = (function(name) {
-         * //                      ^ lexicalName
-         * })
-         * ```
-         */
-        variableName: string;
-        /**
-         * A {@link ts.Expression} for the value passed into the closure initialization.
-         *
-         * ```ts
-         * const f1 = (function() { .. })(value)
-         * //                             ^ outerNode
-         * ```
-         */
-        variableValue: T;
-      }
-
-      /**
-       * Walks the tree in evaluation order, collects all variable names from
-       * Function/Class Declarations, and VariableStatements.
-       *
-       * All {@link ts.Identifier} expressions point to values not in {@link lexicalScope}
-       * are resolved with {@link getFreeVariable}..
-       *
-       * @param node TypeScript AST tree node to walk
-       * @param lexicalScope accumulated names at this point in the evaluate
-       * @returns an array of a Promise resolving each {@link FreeVariable}s referenced by {@link node}
-       */
-      function discoverFreeVariables(
-        /**
-         * The current node being visited.
-         */
-        node: ts.Node,
-        /**
-         * A Set of all names known at this point in the AST.
-         */
-        lexicalScope: iSet<string> = iSet()
-      ): Promise<FreeVariable | undefined>[] {
-        if (
-          ts.isFunctionDeclaration(node) ||
-          ts.isFunctionExpression(node) ||
-          ts.isArrowFunction(node) ||
-          ts.isConstructorDeclaration(node)
-        ) {
-          return collectEachChild(
-            node,
-            lexicalScope.concat(
-              iSet([
-                ...(node.name && ts.isIdentifier(node.name)
-                  ? [node.name.text]
-                  : []),
-                ...node.parameters.flatMap(getBindingNames),
-              ])
-            ),
-            discoverFreeVariables
-          );
-        } else if (ts.isBlock(node)) {
-          // first extract all hoisted functions
-          lexicalScope = lexicalScope.concat(getBindingNames(node));
-          return node.statements.flatMap((stmt) => {
-            const freeVariables = discoverFreeVariables(stmt, lexicalScope);
-            if (ts.isVariableStatement(stmt) || ts.isClassDeclaration(stmt)) {
-              // update the current lexical scope with the variable declarations
-              lexicalScope = lexicalScope.concat(getBindingNames(stmt));
-            }
-            return freeVariables;
-          });
-        } else if (ts.isVariableDeclaration(node)) {
-          return collectEachChild(
-            node,
-            lexicalScope.concat(getBindingNames(node.name)),
-            discoverFreeVariables
-          );
-        } else if (ts.isVariableDeclarationList(node)) {
-          return node.declarations.flatMap((variableDecl) =>
-            discoverFreeVariables(
-              variableDecl,
-              lexicalScope.concat(getBindingNames(variableDecl.name))
-            )
-          );
-        } else if (isFreeVariable(node, lexicalScope)) {
-          return [
-            // capture the free
-            (async () => {
-              const val = await getFreeVariable(func, node.text, false);
-
-              return {
-                variableName: node.text,
-                // serialize
-                variableValue: val,
-              };
-            })(),
-            ...collectEachChild(node, lexicalScope, discoverFreeVariables),
-          ];
-        } else {
-          return collectEachChild(node, lexicalScope, discoverFreeVariables);
-        }
-      }
-
-      /**
-       * Find all of the {@link ts.Identifier}s used within the Function.
-       */
-      function discoverFunctionIdentifiers(
-        funcAST:
-          | ts.ClassDeclaration
-          | ts.ClassExpression
-          | ts.FunctionDeclaration
-          | ts.FunctionExpression
-          | ts.ArrowFunction
-      ): string[] {
-        return collectEachChild(funcAST, function walk(node): string[] {
-          if (ts.isIdentifier(node)) {
-            return [node.text];
-          }
-          return collectEachChild(node, walk);
-        });
-      }
-
-      function collectEachChild<T>(
-        node: ts.Node,
-        extract: (node: ts.Node) => T[]
-      ): T[];
-
-      /**
-       * Visit each child and extract values from it by calling {@link extract} with the
-       * current {@link lexicalScope}.
-       *
-       * @param node the AST node to walk each child of
-       * @param lexicalScope the current lexical scope (names bound to values at this point in the AST)
-       * @param extract a function to extract data from the node
-       * @returns all of the extracted items, T.
-       */
-      function collectEachChild<T>(
-        node: ts.Node,
-        lexicalScope: iSet<string>,
-        extract: (node: ts.Node, lexicalScope: iSet<string>) => T[]
-      ): T[];
-
-      function collectEachChild<T>(
-        node: ts.Node,
-        lexicalScopeOrExtract:
-          | iSet<string>
-          | ((node: ts.Node, lexicalScope?: iSet<string>) => T[]),
-        maybeExtract?: (node: ts.Node, lexicalScope: iSet<string>) => T[]
-      ): T[] {
-        const lexicalScope = maybeExtract
-          ? (lexicalScopeOrExtract as iSet<string>)
-          : undefined;
-        const extract =
-          maybeExtract ??
-          (lexicalScopeOrExtract as (
-            node: ts.Node,
-            lexicalScope?: iSet<string>
-          ) => T[]);
-        const items: T[] = [];
-        ts.forEachChild(node, (n) => {
-          items.push(...extract(n, lexicalScope!));
-        });
-        return items;
-      }
     }
   }
-}
-
-function transform(
-  funcAST:
-    | ts.ClassDeclaration
-    | ts.ClassExpression
-    | ts.FunctionDeclaration
-    | ts.FunctionExpression
-    | ts.ArrowFunction,
-  transformers: ts.TransformerFactory<ts.Node>[]
-) {
-  return ts.transform(funcAST, transformers).transformed[0] as
-    | ts.ClassDeclaration
-    | ts.FunctionDeclaration
-    | ts.FunctionExpression
-    | ts.ArrowFunction;
 }
 
 /**
@@ -849,7 +672,7 @@ function transform(
  * 1. a ts.FunctionDeclaration
  * 2. a ts.ExpressionStatement(ts.FunctionExpression | ts.ArrowFunction)
  */
-function getClosureFromSourceFile(
+export function getClosureFromSourceFile(
   code: ts.SourceFile
 ):
   | ts.ClassDeclaration
@@ -871,117 +694,4 @@ function getClosureFromSourceFile(
     }
   }
   return undefined;
-}
-
-/**
- * Creates a hoisted variable using the `var` keyword with no `initializer`.
- *
- * ```ts
- * var {@link name};
- * ```
- * @param name name of the variable
- * @returns a ts.VariableStatement for the variable.
- */
-function createVarStatement(name: string) {
-  return ts.factory.createVariableStatement(
-    undefined,
-    ts.factory.createVariableDeclarationList(
-      [
-        ts.factory.createVariableDeclaration(
-          name,
-          undefined,
-          undefined,
-          undefined
-        ),
-      ],
-      // default is `var`
-      ts.NodeFlags.None
-    )
-  );
-}
-
-function createParameterDeclaration(name: string) {
-  return ts.factory.createParameterDeclaration(
-    undefined,
-    undefined,
-    undefined,
-    name
-  );
-}
-
-function createPropertyChain(first: string, ...rest: [string, ...string[]]) {
-  return rest.reduce(
-    (expr, name) => ts.factory.createPropertyAccessExpression(expr, name),
-    ts.factory.createIdentifier(first) as ts.Expression
-  );
-}
-
-function getBindingNames(
-  node:
-    | ts.ArrayBindingElement
-    | ts.BindingElement
-    | ts.BindingName
-    | ts.BindingPattern
-    | ts.ClassDeclaration
-    | ts.ClassExpression
-    | ts.ObjectBindingPattern
-    | ts.ParameterDeclaration
-    | ts.VariableDeclaration
-    | ts.VariableDeclarationList
-    | ts.VariableStatement
-    | ts.Block
-    | ts.FunctionDeclaration
-): string[] {
-  if (ts.isBlock(node)) {
-    // extract all lexical scopes
-    return node.statements.flatMap((stmt) =>
-      ts.isFunctionDeclaration(stmt) && stmt.name ? [stmt.name.text] : []
-    );
-  } else if (
-    ts.isFunctionDeclaration(node) ||
-    ts.isClassDeclaration(node) ||
-    ts.isClassExpression(node)
-  ) {
-    return node.name ? [node.name.text] : [];
-  } else if (ts.isParameter(node)) {
-    return getBindingNames(node.name);
-  } else if (ts.isIdentifier(node)) {
-    return [node.text];
-  } else if (
-    ts.isArrayBindingPattern(node) ||
-    ts.isObjectBindingPattern(node)
-  ) {
-    return node.elements.flatMap(getBindingNames);
-  } else if (ts.isOmittedExpression(node)) {
-    return [];
-  } else if (ts.isBindingElement(node)) {
-    return getBindingNames(node.name);
-  } else if (ts.isVariableStatement(node)) {
-    return getBindingNames(node.declarationList);
-  } else if (ts.isVariableDeclarationList(node)) {
-    return node.declarations.flatMap(getBindingNames);
-  } else if (ts.isVariableDeclaration(node)) {
-    return getBindingNames(node.name);
-  }
-  return assertNever(node);
-}
-
-function nameGenerator(prefix: string) {
-  let i = 0;
-
-  const nextName = () => `${prefix}${(i += 1)}`;
-
-  return (exclude?: Set<string>) => {
-    let name = nextName();
-    if (exclude) {
-      while (exclude.has(name)) {
-        name = nextName();
-      }
-    }
-    return name;
-  };
-}
-
-function assertNever(a: never): never {
-  throw new Error(`unreachable code block reached with value: ${a}`);
 }
