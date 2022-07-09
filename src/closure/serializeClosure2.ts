@@ -6,7 +6,7 @@ import { Set as iSet } from "immutable";
 import ts from "typescript";
 v8.setFlagsFromString("--allow-natives-syntax");
 
-export interface SerializeFunctionArgs {
+export interface SerializeFunctionProps {
   /**
    * AST Transformers that will run prior to serialization.
    */
@@ -38,31 +38,20 @@ export interface SerializeFunctionArgs {
   isFactoryFunction?: boolean;
 }
 
-interface FreeVariable {
-  /**
-   * Name of the free variable passed in to the closure initialization.
-   *
-   * ```ts
-   * function f1 = (function(name) {
-   * //                      ^ lexicalName
-   * })
-   * ```
-   */
-  variableName: string;
-  /**
-   * A {@link ts.Expression} for the value passed into the closure initialization.
-   *
-   * ```ts
-   * const f1 = (function() { .. })(value)
-   * //                             ^ outerNode
-   * ```
-   */
-  outerExpr: ts.Expression;
-}
-
+/**
+ * Serialize any `Function` into a string containing the text of a JavaScript module that, when evaluated,
+ * will export a single function, `handle`, that when called, will execute that function
+ *
+ * This functionality enables arbitrary JS Functions to be serialized for remote execution without
+ * losing all of the context of the closure, such as references to variables captured by the closure.
+ *
+ * @param func function to serialize
+ * @param serializeProps
+ * @returns
+ */
 export async function serializeFunction(
   func: Function,
-  args: SerializeFunctionArgs = {}
+  serializeProps: SerializeFunctionProps = {}
 ): Promise<string> {
   const emptyFile = ts.createSourceFile(
     "",
@@ -71,51 +60,6 @@ export async function serializeFunction(
     true,
     ts.ScriptKind.JS
   );
-
-  /**
-   * Maintains a lookup table for all globally known values. These values will not be serialized if detected as free variables.
-   *
-   * TODO: how should we handle the case where user-land code adds to the globals? This is definitely possible.
-   * TODO: also, what happens if a global value is overridden? This is also possible.
-   */
-  const Globals = new Map<any, ts.Expression>([
-    ...Object.entries(<any>{
-      global,
-      process,
-      console,
-      Object,
-      Array,
-      Promise,
-      Boolean,
-      String,
-      Number,
-      BigInt,
-      BigInt64Array,
-      BigUint64Array,
-    }).map(
-      ([key, value]: any) => [value, ts.factory.createIdentifier(key)] as const
-    ),
-    ...Object.getOwnPropertyNames(global).flatMap((name) => {
-      const val = (<any>global)[name];
-      const root = [val, ts.factory.createIdentifier(name)] as const;
-      if (
-        (typeof val === "object" || typeof val === "function") &&
-        val.prototype
-      ) {
-        return [
-          root,
-          [
-            val.prototype,
-            ts.factory.createPropertyAccessExpression(
-              ts.factory.createIdentifier(name),
-              "prototype"
-            ),
-          ],
-        ] as const;
-      }
-      return [root] as const;
-    }),
-  ]);
 
   const printer = ts.createPrinter({ newLine: ts.NewLineKind.LineFeed });
 
@@ -133,17 +77,17 @@ export async function serializeFunction(
   // caches a map of distinct value to a ts.Expression that references the serialized value
   const valueCache = new Map<any, ts.Expression>();
 
-  const handler = await serializeClosure(func);
+  const handler = await serializeFunction(func);
 
   return `${statements.join("\n")}\nexports.handler = ${handler.text}${
-    args.isFactoryFunction ? "()" : ""
+    serializeProps.isFactoryFunction ? "()" : ""
   }`;
 
   /**
    * Serialize a function, {@link func}, write a Statement to the closure and return
    * an identifier pointing to the serialized closure.
    */
-  async function serializeClosure(
+  async function serializeFunction(
     func: Function,
     props: {
       /**
@@ -160,52 +104,37 @@ export async function serializeFunction(
   ): Promise<ts.Identifier> {
     const funcString = func.toString();
 
-    if (Globals.has(func)) {
-      const varName = nextVarName();
-      emit(
-        [
-          ts.factory.createVariableStatement(
-            undefined,
-            ts.factory.createVariableDeclarationList(
-              [
-                ts.factory.createVariableDeclaration(
-                  varName,
-                  undefined,
-                  undefined,
-                  Globals.get(func)!
-                ),
-              ],
-              ts.NodeFlags.Const
-            )
-          ),
-        ],
-        // dummy
-        emptyFile
-      );
-      return ts.factory.createIdentifier(varName);
-    }
-
     if (isNativeFunction(funcString)) {
       if (isBoundFunction(func)) {
-        // this is a function created with .bind(self)
+        // This is a function created with `.bind(self)`. We then use the inspector API
+        // to discover the value of the internal property, `[[BoundThis]]`, serialize that
+        // function and then re-construct the `.bind` call in the remote code.
         const internals = await getFunctionInternals(func);
         if (internals?.targetFunction) {
-          return serializeClosure(internals.targetFunction, {
+          return serializeFunction(internals.targetFunction, {
             this: internals.boundThis,
           });
         }
       }
+      // TODO: check if this is a native function by inspecting the `gypfile` property in
+      // `package.json`, then compile those native libraries and link them to the serialized module.
       debugger;
       throw new Error(`Cannot handle native function: ${funcString}`);
     } else {
+      // unique name of the generated closure
+      const closureName = props.variableName ?? nextVarName();
+
+      // cache a reference to this value
+      valueCache.set(func, ts.factory.createIdentifier(closureName));
+
       let parsedCode = parseFunctionString(funcString);
 
-      /**
-       * Run transformers on the closure AST before closure analysis.
-       */
-      if (args.preProcess && args.preProcess.length > 0) {
-        const preProcessedCode = ts.transform(parsedCode, args.preProcess)
-          .transformed[0];
+      if (serializeProps.preProcess?.length) {
+        // Run pre-process transformers on the closure AST prior to closure analysis.
+        const preProcessedCode = ts.transform(
+          parsedCode,
+          serializeProps.preProcess
+        ).transformed[0];
         if (ts.isSourceFile(preProcessedCode)) {
           parsedCode = preProcessedCode;
         } else {
@@ -213,165 +142,343 @@ export async function serializeFunction(
         }
       }
 
-      let funcAST = getClosure(parsedCode);
-
+      // parsed TypeScript code wraps the closure in a SourceFile(Statement).
+      // that Statement may be a FunctionDeclaration, ClassDeclaration, or a VariableStmt(FunctionLikeExpression)
+      let funcAST = getClosureFromSourceFile(parsedCode);
       if (funcAST === undefined) {
         throw new Error(`SourceFile did not contain a FunctionDeclaration`);
       }
 
-      if (args.preProcess) {
-        funcAST = transform(funcAST, args.preProcess);
+      if (serializeProps.preProcess) {
+        // allow callers to pre-process the AST before serialization
+        funcAST = transform(funcAST, serializeProps.preProcess);
       }
 
-      // collect all ids used within the closure
-      // we will use to ensure there are no name conflicts when when we re-write nodes
-      const ids = new Set<string>();
-      ts.forEachChild(funcAST, function walk(node: ts.Node): void {
-        if (ts.isIdentifier(node)) {
-          ids.add(node.text);
-        }
-        ts.forEachChild(node, walk);
-      });
+      // walk the AST and resolve any free variables - i.e. any ts.Identifiers that point
+      // to a value outside of the closure's scope.
+      const freeVariables = (
+        await Promise.all(discoverFreeVariables(funcAST))
+      ).filter((a): a is Exclude<typeof a, undefined> => a !== undefined);
 
-      const freeVariablesAsync: Promise<FreeVariable | undefined>[] = [];
-
-      // serialize all free variables
-      visit(funcAST);
-
-      function visit(
-        /**
-         * The current node being visited.
-         */
-        node: ts.Node,
-        /**
-         * A Set of all names known at this point in the AST.
-         */
-        lexicalScope: iSet<string> = iSet()
-      ): void {
-        if (
-          ts.isFunctionDeclaration(node) ||
-          ts.isFunctionExpression(node) ||
-          ts.isArrowFunction(node) ||
-          ts.isConstructorDeclaration(node)
-        ) {
-          return forEachChild(
-            node,
-            appendScope(lexicalScope, [
-              node.name && ts.isIdentifier(node.name) ? [node.name.text] : [],
-              node.parameters.flatMap(getBindingNames),
-            ])
-          );
-        } else if (ts.isBlock(node)) {
-          // first extract all hoisted functions
-          lexicalScope = appendScope(lexicalScope, getBindingNames(node));
-          for (const stmt of node.statements) {
-            visit(stmt, lexicalScope);
-            if (ts.isVariableStatement(stmt) || ts.isClassDeclaration(stmt)) {
-              // update the current lexical scope with the variable declarations
-              lexicalScope = appendScope(lexicalScope, getBindingNames(stmt));
-            }
-          }
-          return;
-        } else if (ts.isVariableDeclaration(node)) {
-          return forEachChild(
-            node,
-            appendScope(lexicalScope, getBindingNames(node.name))
-          );
-        } else if (ts.isVariableDeclarationList(node)) {
-          for (const variableDecl of node.declarations) {
-            visit(
-              variableDecl,
-              appendScope(lexicalScope, getBindingNames(variableDecl.name))
-            );
-          }
-          return;
-        } else if (isFreeVariable(node, lexicalScope)) {
-          freeVariablesAsync.push(
-            (async () => {
-              const val = await getFreeVariable(func, node.text, false);
-              if (Globals.has(val)) {
-                // do not serialize globally known values
-                return undefined;
-              }
-
-              return {
-                variableName: node.text,
-                outerExpr: await serializeValue(val, { illegalNames: ids }),
-              };
-            })()
-          );
-        }
-
-        return forEachChild(node, lexicalScope);
-
-        function forEachChild(node: ts.Node, lexicalScope: iSet<string>) {
-          ts.forEachChild(node, (n) => visit(n, lexicalScope));
-        }
-
-        function appendScope(
-          lexicalScope: iSet<string>,
-          names: string[] | string[][]
-        ) {
-          return names
-            .flat()
-            .reduce((scope, name) => scope.add(name), lexicalScope);
-        }
+      if (serializeProps.postProcess?.length) {
+        // allow user to apply AST post-processing to the serialized closure
+        funcAST = transform(funcAST, serializeProps.postProcess);
       }
 
-      const freeVariables = (await Promise.all(freeVariablesAsync)).filter(
-        (a): a is Exclude<typeof a, undefined> => a !== undefined
-      );
-
-      if (args.postProcess?.length) {
-        funcAST = transform(funcAST, args.postProcess);
-      }
-
-      // unique name of the generated closure
-      const closureName = props.variableName ?? nextVarName();
-      valueCache.set(func, ts.factory.createIdentifier(closureName));
-
+      // emit a statement to the bundle that instantiates this closure
       emit(
         [
-          await makeFunctionStatement(
-            parsedCode.statements[0],
+          await createClosureStatement(
             closureName,
-            new Map(
-              freeVariables.map((sub) => [sub.variableName, sub.outerExpr])
-            )
+            parsedCode.statements[0],
+            freeVariables
           ),
         ],
         parsedCode
       );
 
+      // return an Identifier pointing to the serialized and initialized closure
       return ts.factory.createIdentifier(closureName);
 
-      async function makeFunctionStatement(
-        stmt: ts.Statement,
-        closureName: string,
-        lexicalScope: Map<string, ts.Expression>
-      ) {
-        /*
-        const _f1 = ((...lexicalScope) => function functionName(...functionArgs) {
+      /**
+       * Serializes a JavaScript value into the bundle.
+       *
+       * See https://twitter.com/samgoodwin89/status/1545618799482642433?s=20&t=AxGG-nfqH_KQHzmkEBKZ8g
+       * for a diagram explaining the algorithmic flow.
+       *
+       * ## General Form
+       *
+       * A Function is emitted in the following general form:
+       * ```ts
+       * export const f1 = ((...freeVariables) => function Foo() {
+       *   // syntax
+       * })(_self, ...freeVariables)
+       * f1.prototype = (serialized Foo.prototype)
+       * // (add static properties)
+       * f1.staticProp == staticValue
+       * // .. etc.
+       * // (add static prototype)
+       * Object.setPrototype(f1, Function);
+       *
+       * ```
+       *
+       * Objects are emitted as a literal, followed by a bunch of statements setting values on the object.
+       * ```ts
+       * export const v1 = Object.create(BaseType.prototype);
+       * v1.constructor = f1;
+       * v1.prop = value1;
+       * v2.prop = value2;
+       * // ..
+       * vn.prop = valueN;
+       * ```
+       *
+       * ## Algorithm
+       *
+       * Say we are serializing the following code.
+       * ```ts
+       * function Foo() {
+       *   this.bar = "bar";
+       * }
+       *
+       * Foo.prototype.getBar = function() {
+       *   return this.bar;
+       * }
+       *
+       * const foo = new Foo();
+       * ```
+       *
+       * There are three primary cases to handle when serializing a value:
+       *
+       * ### Case 1: starting from the function, `Foo`.
+       *
+       * 1. Emit the function declaration, `Foo`.
+       * ```ts
+       * export const f1 = (() => function Foo() {
+       *   this.bar = "value";
+       * })()
+       * ```
+       *
+       * 2. Create an empty object for the `Foo.prototype`
+       * ```ts
+       * export const o1 = Object.create(Object.prototype);
+       *
+       * // this could be simplified to an object literal in most cases
+       * export const o1 = {};
+       *
+       * // in general form for any type hierarchy:
+       * export const oN = Object.create(SubType.prototype);
+       * 3. Add the `constructor: Foo` property to `Foo.prototype`
+       * ```ts
+       * o1.constructor = f1;
+       * ```
+       * 4. Add the `prototype: Foo.prototype` to `Foo`
+       * ```ts
+       * f1.prototype = o1;
+       * ```
+       * 5. Add all of `Foo.prototype`'s Own Properties
+       * ```ts
+       * o1.prop1 = value1;
+       * // .. etc.
+       * ```
+       * 6. Add all of the `Foo` Function's Own Properties
+       *
+       * ### Case 2: starting from an `object`, `foo`.
+       *
+       * 1. Serialize the `.constructor` property (which will run the Case 1 - Starting with a Function)
+       * ```ts
+       * const f1 = (() => function Foo() {
+       *   this.bar = "value";
+       * })/
+       * ```
+       * 2. `Object.create` an empty object using the `.constructor.prototype` as its prototype
+       * ```ts
+       * const o1 = Object.create(f1.prototype);
+       * ```
+       * 3. Set all of the Own Properties
+       * ```ts
+       * o1.prop = value;
+       * // ..
+       * ```
+       *
+       * ### Case 3: starting from a reference to the method, `getBar`.
+       *
+       * Simply emit the function and capture any free variables.
+       *
+       * ```ts
+       * const f1 = (() => function getBar() {
+       *   return this.bar;
+       * })
+       * ```
+       *
+       * There is nothing we can do about the `this` reference. This is ok, because calling a reference to
+       * this function without first calling `.bind` would break anyway (without serialization)
+       * because `this` would be `undefined`.
+       *
+       * ### Case 4: handling a circular reference where an object's property points to itself
+       *
+       * Nothing needs to be done because an empty object is always created before adding Own Properties.
+       * ```ts
+       * const obj = {}
+       * obj.prop = obj;
+       * ```
+       *
+       * ### Case 5: circular prototype chains
+       *
+       * Circular prototype chains are illegal.
+       *
+       * ```ts
+       * const a = {}, b = {};
+       * Object.setPrototypeOf(a, b);
+       *
+       * // TypeError: Cyclic __proto__ value
+       * Object.setPrototypeOf(b, a);
+       * ```
+       *
+       * @param value
+       * @param props
+       * @returns
+       * @see
+       */
+      async function serializeValue(
+        value: any,
+        props: {
+          illegalNames: Set<string>;
+          /**
+           * Names of properties to omit when serializing objects.
+           */
+          omitProperties?: Set<string>;
+        }
+      ): Promise<ts.Expression> {
+        if (serializeProps.preSerializeValue) {
+          // allow callers to swap a value prior to serialization so that custom logic such
+          // as omitting properties can be implemented within libraries.
+          value = serializeProps.preSerializeValue(value);
+        }
 
-        })(inputLexicalScope);
-        */
+        // primitive types should never be cached, simply return their literal values
+        if (value === undefined) {
+          return ts.factory.createIdentifier("undefined");
+        } else if (value === null) {
+          return ts.factory.createIdentifier("null");
+        } else if (typeof value === "boolean") {
+          return value ? ts.factory.createTrue() : ts.factory.createFalse();
+        } else if (typeof value === "number") {
+          return ts.factory.createNumericLiteral(value);
+        } else if (typeof value === "string") {
+          return ts.factory.createStringLiteral(value);
+        } else if (typeof value === "bigint") {
+          return ts.factory.createBigIntLiteral(value.toString(10));
+        }
+        // TODO: RegExp, Date, etc.
+        // TODO: what other primitive types do we need to handle?
 
-        const names = new Set(lexicalScope.keys());
+        if (!valueCache.has(value)) {
+          // first time seeing this value, we will write it out as a value in module scope
+          const variableName = nextVarName(props.illegalNames);
 
-        function makeName(seed: string): string {
-          let tmp = seed;
-          let i = 0;
-          while (names.has(tmp)) {
-            tmp = `${seed}${i}`;
+          if (typeof value === "function") {
+            if (value === Object) {
+              return ts.factory.createIdentifier("Object");
+            } else if (value === Function) {
+              return ts.factory.createIdentifier("Function");
+            } else if (value === String) {
+              return ts.factory.createIdentifier("String");
+            } else if (value === Array) {
+              return ts.factory.createIdentifier("Array");
+            } else if (value === Number) {
+              return ts.factory.createIdentifier("Number");
+            }
+
+            return serializeFunction(value, {
+              variableName,
+            });
+          } else if (typeof value === "object") {
+            const ownConstructor = value.hasOwnProperty("constructor")
+              ? value.constructor
+              : undefined;
+
+            const constructor = await serializeValue(ownConstructor, props);
+
+            const prototype = Object.getPrototypeOf(value);
+            const objectClass = prototype
+              ? await serializeValue(prototype, props)
+              : undefined;
+
+            const properties = [];
+            for (const ownPropertyName of Object.keys(value)) {
+              if (!props.omitProperties?.has(ownPropertyName)) {
+                properties.push(
+                  ts.factory.createPropertyAssignment(
+                    ownPropertyName,
+                    await serializeValue(value[ownPropertyName], props)
+                  )
+                );
+              }
+            }
+
+            emit(
+              [
+                ts.factory.createVariableStatement(
+                  undefined,
+                  ts.factory.createVariableDeclarationList([
+                    ts.factory.createVariableDeclaration(
+                      variableName,
+                      undefined,
+                      undefined,
+                      ts.factory.createObjectLiteralExpression(properties)
+                    ),
+                  ])
+                ),
+                ...(objectClass
+                  ? [
+                      ts.factory.createExpressionStatement(
+                        ts.factory.createCallExpression(
+                          ts.factory.createPropertyAccessExpression(
+                            ts.factory.createIdentifier("Object"),
+                            "setPrototypeOf"
+                          ),
+                          undefined,
+                          [
+                            ts.factory.createIdentifier(variableName),
+                            objectClass,
+                          ]
+                        )
+                      ),
+                    ]
+                  : []),
+              ],
+              parsedCode
+            );
+            return ts.factory.createIdentifier(variableName);
+          } else if (Array.isArray(value)) {
+            const elements = [];
+            for (const item of value) {
+              elements.push(await serializeValue(item, props));
+            }
+            return ts.factory.createArrayLiteralExpression(elements);
           }
-          names.add(tmp);
+
+          return ts.factory.createIdentifier("undefined");
+        } else {
+          return valueCache.get(value)!;
+        }
+      }
+
+      async function createClosureStatement(
+        closureName: string,
+        stmt: ts.Statement,
+        freeVariables: FreeVariable[]
+      ) {
+        const lexicalScope = new Set(
+          freeVariables.map((freeVariable) => freeVariable.variableName)
+        );
+
+        // collect all ids used within the closure
+        // we will use to ensure there are no name conflicts when when we re-write nodes
+        const identifiersInFunction = discoverIdentifiersInCode(funcAST!);
+
+        /**
+         * Function for creating names that do not collide with the free variable names.
+         *
+         * @param desiredName the ideal name that may or may not be unique
+         * @returns the `desiredName` if it is unique, or increments a tail number until it is unique.
+         */
+        function makeLexicallyUniqueName(desiredName: string): string {
+          let tmp = desiredName;
+          let i = 0;
+          while (lexicalScope.has(tmp)) {
+            tmp = `${desiredName}${i}`;
+          }
+          lexicalScope.add(tmp);
           return tmp;
         }
 
-        const boundThisName = makeName("_self");
+        const boundThisName = makeLexicallyUniqueName("_self");
         const boundThis =
           "this" in props
-            ? await serializeValue(props.this, { illegalNames: ids })
+            ? await serializeValue(props.this, {
+                illegalNames: identifiersInFunction,
+              })
             : undefined;
 
         let superName: string | undefined;
@@ -395,10 +502,18 @@ export async function serializeFunction(
                   expression: ts.Identifier;
                 } => ts.isIdentifier(type.expression)
               )?.expression.text;
-            superName = makeName(extendsClause ?? "_super");
-            superValue = await serializeValue(prototype, { illegalNames: ids });
+            superName = makeLexicallyUniqueName(extendsClause ?? "_super");
+            superValue = await serializeValue(prototype, {
+              illegalNames: identifiersInFunction,
+            });
           }
         }
+
+        /*
+        const _f1 = ((...lexicalScope) => function functionName(...functionArgs) {
+
+        })(inputLexicalScope);
+        */
 
         const innerClosure = boundThis
           ? ts.factory.createCallExpression(
@@ -411,12 +526,12 @@ export async function serializeFunction(
             )
           : innerClosureExpr();
 
-        const lexicalScopeArgs = Array.from(lexicalScope.keys()).map((name) =>
+        const freeVariableArgs = freeVariables.map((freeVariable) =>
           ts.factory.createParameterDeclaration(
             undefined,
             undefined,
             undefined,
-            name,
+            freeVariable.variableName,
             undefined
           )
         );
@@ -428,7 +543,7 @@ export async function serializeFunction(
             [
               boundThis ? [createParameterDeclaration(boundThisName)] : [],
               superName ? [createParameterDeclaration(superName)] : [],
-              lexicalScopeArgs,
+              freeVariableArgs,
             ].flat(),
             undefined,
             undefined,
@@ -438,7 +553,7 @@ export async function serializeFunction(
           [
             boundThis ? [boundThis] : [],
             superValue ? [superValue] : [],
-            Array.from(lexicalScope.values()),
+            freeVariables.map((freeVariable) => freeVariable.variableValue),
           ].flat()
         );
 
@@ -517,163 +632,210 @@ export async function serializeFunction(
         }
       }
 
-      async function serializeValue(
-        value: any,
-        props: {
-          illegalNames: Set<string>;
-          /**
-           * Names of properties to omit when serializing objects.
-           */
-          omitProperties?: Set<string>;
-        }
-      ): Promise<ts.Expression> {
-        if (args.preSerializeValue) {
-          value = args.preSerializeValue(value);
-        }
-        if (value === undefined) {
-          return ts.factory.createIdentifier("undefined");
-        } else if (value === null) {
-          return ts.factory.createIdentifier("null");
-        } else if (typeof value === "boolean") {
-          return value ? ts.factory.createTrue() : ts.factory.createFalse();
-        } else if (typeof value === "number") {
-          return ts.factory.createNumericLiteral(value);
-        } else if (typeof value === "string") {
-          return ts.factory.createStringLiteral(value);
-        } else if (typeof value === "bigint") {
-          return ts.factory.createBigIntLiteral(value.toString(10));
-        }
-
-        if (!valueCache.has(value)) {
-          const variableName = nextVarName(props.illegalNames);
-          valueCache.set(value, ts.factory.createIdentifier(variableName));
-          return doSerialize(variableName);
-        } else {
-          return valueCache.get(value)!;
-        }
-
-        async function doSerialize(variableName: string) {
-          if (typeof value === "function") {
-            if (value === Object) {
-              return ts.factory.createIdentifier("Object");
-            } else if (value === Function) {
-              return ts.factory.createIdentifier("Function");
-            } else if (value === String) {
-              return ts.factory.createIdentifier("String");
-            } else if (value === Array) {
-              return ts.factory.createIdentifier("Array");
-            } else if (value === Number) {
-              return ts.factory.createIdentifier("Number");
-            }
-
-            // const prototype =
-            //   value.prototype.constructor !== value
-            //     ? // this function has a custom prototype (i.e. one that is not the base Object.prototype)
-            //       // we should serialize that and set it on the function
-            //       await serializeValue(value.prototype, {
-            //         ...props,
-            //         omitProperties: new Set(["constructor"]),
-            //       })
-            //     : undefined;
-
-            return serializeClosure(value, {
-              variableName,
-            });
-
-            // if (prototype) {
-            //   emit([
-            //     ts.factory.createExpressionStatement(
-            //       ts.factory.createBinaryExpression(
-            //         ts.factory.createPropertyAccessExpression(
-            //           closure,
-            //           "prototype"
-            //         ),
-            //         ts.factory.createToken(ts.SyntaxKind.EqualsToken),
-            //         prototype
-            //       )
-            //     ),
-            //   ]);
-            // }
-
-            // return closure;
-          } else if (Array.isArray(value)) {
-            const elements = [];
-            for (const item of value) {
-              elements.push(await serializeValue(item, props));
-            }
-            return ts.factory.createArrayLiteralExpression(elements);
-          } else if (typeof value === "object") {
-            if (value === Object.prototype) {
-              return createPropertyChain("Object", "prototype");
-            } else if (value === Function.prototype) {
-              return createPropertyChain("Function", "prototype");
-            } else if (value === String.prototype) {
-              return createPropertyChain("String", "prototype");
-            } else if (value === Array.prototype) {
-              return createPropertyChain("Array", "prototype");
-            } else if (value === Number.prototype) {
-              return createPropertyChain("Number", "prototype");
-            }
-
-            const prototype = Object.getPrototypeOf(value);
-            const objectClass = prototype
-              ? await serializeValue(prototype, props)
-              : undefined;
-
-            const properties = [];
-            for (const ownPropertyName of Object.keys(value)) {
-              if (!props.omitProperties?.has(ownPropertyName)) {
-                properties.push(
-                  ts.factory.createPropertyAssignment(
-                    ownPropertyName,
-                    await serializeValue(value[ownPropertyName], props)
-                  )
-                );
-              }
-            }
-
-            emit(
-              [
-                ts.factory.createVariableStatement(
-                  undefined,
-                  ts.factory.createVariableDeclarationList([
-                    ts.factory.createVariableDeclaration(
-                      variableName,
-                      undefined,
-                      undefined,
-                      ts.factory.createObjectLiteralExpression(properties)
-                    ),
-                  ])
-                ),
-                ...(objectClass
-                  ? [
-                      ts.factory.createExpressionStatement(
-                        ts.factory.createCallExpression(
-                          ts.factory.createPropertyAccessExpression(
-                            ts.factory.createIdentifier("Object"),
-                            "setPrototypeOf"
-                          ),
-                          undefined,
-                          [
-                            ts.factory.createIdentifier(variableName),
-                            objectClass,
-                          ]
-                        )
-                      ),
-                    ]
-                  : []),
-              ],
-              parsedCode
-            );
-            return ts.factory.createIdentifier(variableName);
+      /**
+       * Find all of the {@link ts.Identifier}s used within the Function.
+       */
+      function discoverIdentifiersInCode(
+        funcAST:
+          | ts.ClassDeclaration
+          | ts.ClassExpression
+          | ts.FunctionDeclaration
+          | ts.FunctionExpression
+          | ts.ArrowFunction
+      ) {
+        const identifiersInFunction = new Set<string>();
+        ts.forEachChild(funcAST, function walk(node: ts.Node): void {
+          if (ts.isIdentifier(node)) {
+            identifiersInFunction.add(node.text);
           }
+          ts.forEachChild(node, walk);
+        });
+        return identifiersInFunction;
+      }
 
-          return ts.factory.createIdentifier("undefined");
+      interface FreeVariable<T = any> {
+        /**
+         * Name of the free variable passed in to the closure initialization.
+         *
+         * ```ts
+         * function f1 = (function(name) {
+         * //                      ^ lexicalName
+         * })
+         * ```
+         */
+        variableName: string;
+        /**
+         * A {@link ts.Expression} for the value passed into the closure initialization.
+         *
+         * ```ts
+         * const f1 = (function() { .. })(value)
+         * //                             ^ outerNode
+         * ```
+         */
+        variableValue: T;
+      }
+
+      /**
+       * Walks the tree in evaluation order, collects all variable names from
+       * Function/Class Declarations, and VariableStatements.
+       *
+       * All {@link ts.Identifier} expressions point to values not in {@link lexicalScope}
+       * are resolved with {@link getFreeVariable}..
+       *
+       * @param node TypeScript AST tree node to walk
+       * @param lexicalScope accumulated names at this point in the evaluate
+       * @returns an array of a Promise resolving each {@link FreeVariable}s referenced by {@link node}
+       */
+      function discoverFreeVariables(
+        /**
+         * The current node being visited.
+         */
+        node: ts.Node,
+        /**
+         * A Set of all names known at this point in the AST.
+         */
+        lexicalScope: iSet<string> = iSet()
+      ): Promise<FreeVariable | undefined>[] {
+        if (
+          ts.isFunctionDeclaration(node) ||
+          ts.isFunctionExpression(node) ||
+          ts.isArrowFunction(node) ||
+          ts.isConstructorDeclaration(node)
+        ) {
+          return collectEachChild(
+            node,
+            lexicalScope.concat(
+              iSet([
+                ...(node.name && ts.isIdentifier(node.name)
+                  ? [node.name.text]
+                  : []),
+                ...node.parameters.flatMap(getBindingNames),
+              ])
+            ),
+            discoverFreeVariables
+          );
+        } else if (ts.isBlock(node)) {
+          // first extract all hoisted functions
+          lexicalScope = lexicalScope.concat(getBindingNames(node));
+          return node.statements.flatMap((stmt) => {
+            const freeVariables = discoverFreeVariables(stmt, lexicalScope);
+            if (ts.isVariableStatement(stmt) || ts.isClassDeclaration(stmt)) {
+              // update the current lexical scope with the variable declarations
+              lexicalScope = lexicalScope.concat(getBindingNames(stmt));
+            }
+            return freeVariables;
+          });
+        } else if (ts.isVariableDeclaration(node)) {
+          return collectEachChild(
+            node,
+            lexicalScope.concat(getBindingNames(node.name)),
+            discoverFreeVariables
+          );
+        } else if (ts.isVariableDeclarationList(node)) {
+          return node.declarations.flatMap((variableDecl) =>
+            discoverFreeVariables(
+              variableDecl,
+              lexicalScope.concat(getBindingNames(variableDecl.name))
+            )
+          );
+        } else if (isFreeVariable(node, lexicalScope)) {
+          return [
+            // capture the free
+            (async () => {
+              const val = await getFreeVariable(func, node.text, false);
+
+              return {
+                variableName: node.text,
+                // serialize
+                variableValue: val,
+              };
+            })(),
+            ...collectEachChild(node, lexicalScope, discoverFreeVariables),
+          ];
+        } else {
+          return collectEachChild(node, lexicalScope, discoverFreeVariables);
         }
+      }
+
+      /**
+       * Visit each child and extract values from it by calling {@link extract} with the
+       * current {@link lexicalScope}.
+       *
+       * @param node the AST node to walk each child of
+       * @param lexicalScope the current lexical scope (names bound to values at this point in the AST)
+       * @param extract a function to extract data from the node
+       * @returns all of the extracted items, T.
+       */
+      function collectEachChild<T>(
+        node: ts.Node,
+        lexicalScope: iSet<string>,
+        extract: (node: ts.Node, lexicalScope: iSet<string>) => T[]
+      ): T[] {
+        const items: T[] = [];
+        ts.forEachChild(node, (n) => {
+          items.push(...extract(n, lexicalScope));
+        });
+        return items;
       }
     }
   }
 }
+
+type OwnFunctions<T extends object> = {
+  [k in FunctionProperties<T>]: T[k];
+};
+
+type FunctionProperties<T extends object> = {
+  [k in keyof T]: T extends Function ? k : never;
+}[keyof T];
+
+/**
+ * A list of objects containing stringified form of all of the Global object's Own Function Properties.
+ *
+ * We will use these string forms to detect augmentations (such as poly-filling) to the primitive types.
+ */
+const unModifiedGlobalOwnFunctions: [
+  OwnFunctions<typeof Object>,
+  OwnFunctions<typeof Object["prototype"]>,
+  OwnFunctions<typeof Function>,
+  OwnFunctions<typeof Function["prototype"]>
+] = (() => {
+  return vm.runInNewContext(
+    (() => {
+      // run a function in an isolated VM that walks through each of the functions on global objects
+      // and returns a stringified version of that function
+      // we will use this stringified form to detect when a global object has been augmented by another module
+      // only augmented functions will be serialized
+      return [
+        getOwnPropertyFunctionStringForms(Object),
+        getOwnPropertyFunctionStringForms(Object.prototype),
+        getOwnPropertyFunctionStringForms(Function),
+        getOwnPropertyFunctionStringForms(Function.prototype),
+        getOwnPropertyFunctionStringForms(Array),
+        getOwnPropertyFunctionStringForms(Array.prototype),
+      ];
+
+      /**
+       * Walk through each of the Own Properties that are Functions and stringify them
+       *
+       * @param object containing properties that are Functions
+       * @returns map of functionName to stringified Function
+       */
+      function getOwnPropertyFunctionStringForms<T extends object>(
+        object: T
+      ): Record<Extract<keyof T, string>, string> {
+        const functions: any = {};
+        for (const ownPropertyName in Object.getOwnPropertyNames(object)) {
+          const ownProperty = object[ownPropertyName as keyof typeof object];
+          if (typeof ownProperty === "function") {
+            functions[ownPropertyName] = ownProperty.toString();
+          }
+        }
+        return functions;
+      }
+    }).toString()
+  );
+})();
 
 function parseFunctionString(funcString: string): ts.SourceFile {
   const sf = ts.createSourceFile(
@@ -720,7 +882,7 @@ function transform(
  * 1. a ts.FunctionDeclaration
  * 2. a ts.ExpressionStatement(ts.FunctionExpression | ts.ArrowFunction)
  */
-function getClosure(
+function getClosureFromSourceFile(
   code: ts.SourceFile
 ):
   | ts.ClassDeclaration
