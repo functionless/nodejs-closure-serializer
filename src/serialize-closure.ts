@@ -3,8 +3,7 @@ v8.setFlagsFromString("--allow-natives-syntax");
 
 import ts from "typescript";
 import { getFreeVariables, FreeVariable } from "./free-variable";
-import { discoverFunctionIdentifiers } from "./function-identifiers";
-import { getFunctionInternals } from "./function-internals";
+import { getFunctionIdentifiers, getFunctionInternals } from "./function";
 import { parseFunctionString } from "./parse-function";
 import {
   createParameterDeclaration,
@@ -119,9 +118,9 @@ export async function serializeFunction(
         // to discover the value of the internal property, `[[BoundThis]]`, serialize that
         // function and then re-construct the `.bind` call in the remote code.
         const internals = await getFunctionInternals(func);
-        if (internals?.targetFunction) {
-          return serializeFunction(internals.targetFunction, {
-            this: internals.boundThis,
+        if (internals?.["[[TargetFunction]]"]) {
+          return serializeFunction(internals["[[TargetFunction]]"], {
+            this: internals["[[BoundThis]]"],
           });
         }
       }
@@ -174,7 +173,7 @@ export async function serializeFunction(
         ...freeVariables.map(({ variableName }) => variableName),
         // collect all ids used within the closure
         // we will use this to ensure there are no name conflicts with hoisted closure variables
-        ...discoverFunctionIdentifiers(funcAST!),
+        ...getFunctionIdentifiers(funcAST!),
       ]);
 
       // hoist free variable declarations

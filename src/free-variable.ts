@@ -1,11 +1,12 @@
+/* eslint-disable no-bitwise */
 import inspector from "inspector";
 import util from "util";
 import { Set as iSet } from "immutable";
 import ts from "typescript";
 import { collectEachChild } from "./collect-each-child";
+import { getFunctionId } from "./function";
 import {
   CallFunctionSession,
-  EvaluationSession,
   inflightContext,
   inspectorSession,
 } from "./inspector-session";
@@ -106,16 +107,10 @@ export function getFreeVariables(
       );
     } else if (isFreeVariable(node, lexicalScope)) {
       return [
-        // capture the free
-        (async () => {
-          const val = await getFreeVariableValue(func, node.text, false);
-
-          return {
-            variableName: node.text,
-            // serialize
-            variableValue: val,
-          };
-        })(),
+        getFreeVariableValue(func, node.text, false).then((val) => ({
+          variableName: node.text,
+          variableValue: val,
+        })),
         ...collectEachChild(node, lexicalScope, _discoverFreeVariables),
       ];
     } else {
@@ -147,10 +142,28 @@ function getBindingNames(
     | ts.FunctionDeclaration
 ): string[] {
   if (ts.isBlock(binding)) {
-    // extract all lexical scopes
-    return binding.statements.flatMap((stmt) =>
-      ts.isFunctionDeclaration(stmt) && stmt.name ? [stmt.name.text] : []
-    );
+    // hoist all relevant `function` and `var` declarations
+    return binding.statements.flatMap((stmt) => {
+      if (ts.isFunctionDeclaration(stmt) && stmt.name) {
+        return [stmt.name.text];
+      } else if (
+        ts.isVariableStatement(stmt) &&
+        (stmt.declarationList.flags &
+          // if the variable is neither a `const` or `let`, then hoist the bindings
+          (ts.NodeFlags.Const | ts.NodeFlags.Let)) ===
+          0
+      ) {
+        return stmt.declarationList.declarations
+          .filter(
+            // `var` is only hoisted if there is no initializer
+            // see: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/var
+            (declaration) => declaration.initializer === undefined
+          )
+          .flatMap(getBindingNames);
+      }
+
+      return [];
+    });
   } else if (
     ts.isFunctionDeclaration(binding) ||
     ts.isClassDeclaration(binding) ||
@@ -280,13 +293,49 @@ export function isFreeVariable(
   return !lexicalScope.has(node.text);
 }
 
+/**
+ * Determines if the Binding, {@link binding}, contains the Identifier, {@link id}.
+ *
+ * Comparison is done by object identity, not identifier text.
+ */
+function bindingHasId(
+  id: ts.Identifier,
+  binding: ts.BindingName | ts.BindingElement | ts.OmittedExpression
+): boolean {
+  if (ts.isOmittedExpression(binding)) {
+    return false;
+  } else if (ts.isBindingElement(binding)) {
+    return bindingHasId(id, binding.name);
+  } else if (ts.isIdentifier(binding)) {
+    return binding === id;
+  } else if (
+    ts.isObjectBindingPattern(binding) ||
+    ts.isArrayBindingPattern(binding)
+  ) {
+    return (
+      binding.elements.find((element) => bindingHasId(id, element)) !==
+      undefined
+    );
+  }
+  return false;
+}
+
+/**
+ * Get the value of a {@link freeVariable} captured by the {@link closure}.
+ *
+ * @param closure the closure whose lexical scope to probe for the free variable
+ * @param freeVariable name of the free variable to resolve
+ * @param throwOnFailure whether to throw when the variable cannot be resolved
+ * @returns the value of the free variable if it can be resolved
+ * @throws an error if {@link throwOnFailure} is true and the free variable is not visible in scope
+ */
 export async function getFreeVariableValue(
-  func: Function,
+  closure: Function,
   freeVariable: string,
   throwOnFailure: boolean
 ): Promise<any> {
   // First, find the runtime's internal id for this function.
-  const functionId = await getFunctionId(func);
+  const functionId = await getFunctionId(closure);
 
   // Now, query for the internal properties the runtime sets up for it.
   const internalProperties = await getInternalProperties(
@@ -296,7 +345,7 @@ export async function getFreeVariableValue(
 
   // There should normally be an internal property called [[Scopes]]:
   // https://chromium.googlesource.com/v8/v8.git/+/3f99afc93c9ba1ba5df19f123b93cc3079893c9b/src/inspector/v8-debugger.cc#820
-  const scopes = internalProperties.find((p) => p.name === "[[Scopes]]");
+  const scopes = internalProperties["[[Scopes]]"];
   if (!scopes) {
     throw new Error("Could not find [[Scopes]] property");
   }
@@ -337,91 +386,6 @@ export async function getFreeVariableValue(
   }
 
   return undefined;
-}
-
-/**
- * Determines if the Binding, {@link binding}, contains the Identifier, {@link id}.
- *
- * Comparison is done by object identity, not identifier text.
- */
-function bindingHasId(
-  id: ts.Identifier,
-  binding: ts.BindingName | ts.BindingElement | ts.OmittedExpression
-): boolean {
-  if (ts.isOmittedExpression(binding)) {
-    return false;
-  } else if (ts.isBindingElement(binding)) {
-    return bindingHasId(id, binding.name);
-  } else if (ts.isIdentifier(binding)) {
-    return binding === id;
-  } else if (
-    ts.isObjectBindingPattern(binding) ||
-    ts.isArrayBindingPattern(binding)
-  ) {
-    return (
-      binding.elements.find((element) => bindingHasId(id, element)) !==
-      undefined
-    );
-  }
-  return false;
-}
-
-export async function getFunctionId(
-  func: Function
-): Promise<inspector.Runtime.RemoteObjectId> {
-  // In order to get information about an object, we need to put it in a well known location so
-  // that we can call Runtime.evaluate and find it.  To do this, we use a special map on the
-  // 'global' object of a vm context only used for this purpose, and map from a unique-id to that
-  // object.  We then call Runtime.evaluate with an expression that then points to that unique-id
-  // in that global object.  The runtime will then find the object and give us back an internal id
-  // for it.  We can then query for information about the object through that internal id.
-  //
-  // Note: the reason for the mapping object and the unique-id we create is so that we don't run
-  // into any issues when being called asynchronously.  We don't want to place the object in a
-  // location that might be overwritten by another call while we're asynchronously waiting for our
-  // original call to complete.
-
-  const session = <EvaluationSession>await inspectorSession;
-  const post = util.promisify(session.post);
-
-  // Place the function in a unique location
-  const context = await inflightContext;
-  const currentFunctionName = "id" + context.currentFunctionId++;
-  context.functions[currentFunctionName] = func;
-  const contextId = context.contextId;
-  const expression = `functions.${currentFunctionName}`;
-
-  try {
-    const retType = await post.call(session, "Runtime.evaluate", {
-      contextId,
-      expression,
-    });
-
-    if (retType.exceptionDetails) {
-      throw new Error(
-        `Error calling "Runtime.evaluate(${expression})" on context ${contextId}: ` +
-          retType.exceptionDetails.text
-      );
-    }
-
-    const remoteObject = retType.result;
-    if (remoteObject.type !== "function") {
-      throw new Error(
-        "Remote object was not 'function': " + JSON.stringify(remoteObject)
-      );
-    }
-
-    if (!remoteObject.objectId) {
-      throw new Error(
-        "Remote function does not have 'objectId': " +
-          JSON.stringify(remoteObject)
-      );
-    }
-
-    return remoteObject.objectId;
-  } finally {
-    delete context.functions[currentFunctionName];
-  }
 }
 
 export async function getValueForObjectId(

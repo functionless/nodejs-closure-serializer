@@ -1,14 +1,19 @@
 import { Set as iSet } from "immutable";
 import ts from "typescript";
 
+/**
+ * Visit each child and {@link collect} a list of {@link T}.
+ *
+ * @param node AST node to visit the children of
+ * @param collect function for analyzing and extracting data from a child AST node.
+ */
 export function collectEachChild<T>(
   node: ts.Node,
-  extract: (node: ts.Node) => T[]
+  collect: (node: ts.Node) => T[]
 ): T[];
 
 /**
- * Visit each child and extract values from it by calling {@link extract} with the
- * current {@link lexicalScope}.
+ * Visit each child and {@link collect} a list of {@link T} using the current {@link lexicalScope}.
  *
  * @param node the AST node to walk each child of
  * @param lexicalScope the current lexical scope (names bound to values at this point in the AST)
