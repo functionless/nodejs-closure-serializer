@@ -2,7 +2,6 @@ import inspector from "inspector";
 import util from "util";
 import { Set as iSet } from "immutable";
 import ts from "typescript";
-import { getBindingNames } from "./binding-names";
 import { collectEachChild } from "./collect-each-child";
 import {
   CallFunctionSession,
@@ -11,6 +10,7 @@ import {
   inspectorSession,
 } from "./inspector-session";
 import { getInternalProperties } from "./internal-properties";
+import { assertNever } from "./util";
 
 export interface FreeVariable<T = any> {
   /**
@@ -39,13 +39,13 @@ export interface FreeVariable<T = any> {
  * Function/Class Declarations, and VariableStatements.
  *
  * All {@link ts.Identifier} expressions point to values not in {@link lexicalScope}
- * are resolved with {@link getFreeVariable}..
+ * are resolved with {@link getFreeVariableValue}..
  *
  * @param node TypeScript AST tree node to walk
  * @param lexicalScope accumulated names at this point in the evaluate
  * @returns an array of a Promise resolving each {@link FreeVariable}s referenced by {@link node}
  */
-export function discoverFreeVariables(
+export function getFreeVariables(
   func: Function,
   /**
    * The current node being visited.
@@ -59,13 +59,7 @@ export function discoverFreeVariables(
   return _discoverFreeVariables(node, lexicalScope);
 
   function _discoverFreeVariables(
-    /**
-     * The current node being visited.
-     */
     node: ts.Node,
-    /**
-     * A Set of all names known at this point in the AST.
-     */
     lexicalScope: iSet<string> = iSet()
   ): Promise<FreeVariable | undefined>[] {
     if (
@@ -114,7 +108,7 @@ export function discoverFreeVariables(
       return [
         // capture the free
         (async () => {
-          const val = await getFreeVariable(func, node.text, false);
+          const val = await getFreeVariableValue(func, node.text, false);
 
           return {
             variableName: node.text,
@@ -131,7 +125,65 @@ export function discoverFreeVariables(
 }
 
 /**
- * Determines if a ts.Identifier in a Class or Function points to a free variable (i.e. a value outside of its scope).
+ * Get all of the names declared by a binding.
+ *
+ * @param binding AST node representing the binding
+ * @returns all of the names produced by the {@link binding}
+ */
+function getBindingNames(
+  binding:
+    | ts.ArrayBindingElement
+    | ts.BindingElement
+    | ts.BindingName
+    | ts.BindingPattern
+    | ts.ClassDeclaration
+    | ts.ClassExpression
+    | ts.ObjectBindingPattern
+    | ts.ParameterDeclaration
+    | ts.VariableDeclaration
+    | ts.VariableDeclarationList
+    | ts.VariableStatement
+    | ts.Block
+    | ts.FunctionDeclaration
+): string[] {
+  if (ts.isBlock(binding)) {
+    // extract all lexical scopes
+    return binding.statements.flatMap((stmt) =>
+      ts.isFunctionDeclaration(stmt) && stmt.name ? [stmt.name.text] : []
+    );
+  } else if (
+    ts.isFunctionDeclaration(binding) ||
+    ts.isClassDeclaration(binding) ||
+    ts.isClassExpression(binding)
+  ) {
+    return binding.name ? [binding.name.text] : [];
+  } else if (ts.isParameter(binding)) {
+    return getBindingNames(binding.name);
+  } else if (ts.isIdentifier(binding)) {
+    return [binding.text];
+  } else if (
+    ts.isArrayBindingPattern(binding) ||
+    ts.isObjectBindingPattern(binding)
+  ) {
+    return binding.elements.flatMap(getBindingNames);
+  } else if (ts.isOmittedExpression(binding)) {
+    return [];
+  } else if (ts.isBindingElement(binding)) {
+    return getBindingNames(binding.name);
+  } else if (ts.isVariableStatement(binding)) {
+    return getBindingNames(binding.declarationList);
+  } else if (ts.isVariableDeclarationList(binding)) {
+    return binding.declarations.flatMap(getBindingNames);
+  } else if (ts.isVariableDeclaration(binding)) {
+    return getBindingNames(binding.name);
+  }
+  return assertNever(binding);
+}
+
+/**
+ * Determines if a ts.Identifier in a Class or Function points to a free variable.
+ *
+ * i.e. a reference to a value declared outside of the scope of a function.
  */
 export function isFreeVariable(
   node: ts.Node,
@@ -228,34 +280,7 @@ export function isFreeVariable(
   return !lexicalScope.has(node.text);
 }
 
-/**
- * Determines if the Binding, {@link binding}, contains the Identifier, {@link id}.
- *
- * Comparison is done by object identity, not identifier text.
- */
-function bindingHasId(
-  id: ts.Identifier,
-  binding: ts.BindingName | ts.BindingElement | ts.OmittedExpression
-): boolean {
-  if (ts.isOmittedExpression(binding)) {
-    return false;
-  } else if (ts.isBindingElement(binding)) {
-    return bindingHasId(id, binding.name);
-  } else if (ts.isIdentifier(binding)) {
-    return binding === id;
-  } else if (
-    ts.isObjectBindingPattern(binding) ||
-    ts.isArrayBindingPattern(binding)
-  ) {
-    return (
-      binding.elements.find((element) => bindingHasId(id, element)) !==
-      undefined
-    );
-  }
-  return false;
-}
-
-export async function getFreeVariable(
+export async function getFreeVariableValue(
   func: Function,
   freeVariable: string,
   throwOnFailure: boolean
@@ -312,6 +337,33 @@ export async function getFreeVariable(
   }
 
   return undefined;
+}
+
+/**
+ * Determines if the Binding, {@link binding}, contains the Identifier, {@link id}.
+ *
+ * Comparison is done by object identity, not identifier text.
+ */
+function bindingHasId(
+  id: ts.Identifier,
+  binding: ts.BindingName | ts.BindingElement | ts.OmittedExpression
+): boolean {
+  if (ts.isOmittedExpression(binding)) {
+    return false;
+  } else if (ts.isBindingElement(binding)) {
+    return bindingHasId(id, binding.name);
+  } else if (ts.isIdentifier(binding)) {
+    return binding === id;
+  } else if (
+    ts.isObjectBindingPattern(binding) ||
+    ts.isArrayBindingPattern(binding)
+  ) {
+    return (
+      binding.elements.find((element) => bindingHasId(id, element)) !==
+      undefined
+    );
+  }
+  return false;
 }
 
 export async function getFunctionId(

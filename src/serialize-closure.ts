@@ -2,7 +2,7 @@ import v8 from "v8";
 v8.setFlagsFromString("--allow-natives-syntax");
 
 import ts from "typescript";
-import { discoverFreeVariables, FreeVariable } from "./free-variable";
+import { getFreeVariables, FreeVariable } from "./free-variable";
 import { discoverFunctionIdentifiers } from "./function-identifiers";
 import { getFunctionInternals } from "./function-internals";
 import { parseFunctionString } from "./parse-function";
@@ -166,7 +166,7 @@ export async function serializeFunction(
       // walk the AST and resolve any free variables - i.e. any ts.Identifiers that point
       // to a value outside of the closure's scope.
       const freeVariables = (
-        await Promise.all(discoverFreeVariables(func, funcAST))
+        await Promise.all(getFreeVariables(func, funcAST))
       ).filter((a): a is Exclude<typeof a, undefined> => a !== undefined);
 
       // when naming variables,
