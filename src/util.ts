@@ -38,22 +38,6 @@ export function isSuperExpression(node: ts.Node): node is ts.SuperExpression {
   return node.kind === ts.SyntaxKind.SuperKeyword;
 }
 
-export function transform(
-  funcAST:
-    | ts.ClassDeclaration
-    | ts.ClassExpression
-    | ts.FunctionDeclaration
-    | ts.FunctionExpression
-    | ts.ArrowFunction,
-  transformers: ts.TransformerFactory<ts.Node>[]
-) {
-  return ts.transform(funcAST, transformers).transformed[0] as
-    | ts.ClassDeclaration
-    | ts.FunctionDeclaration
-    | ts.FunctionExpression
-    | ts.ArrowFunction;
-}
-
 /**
  * Creates a hoisted variable using the `var` keyword with no `initializer`.
  *

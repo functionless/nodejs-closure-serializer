@@ -37,22 +37,13 @@ export async function getInternalProperties(
     );
   }
 
-  return Object.fromEntries(
-    await Promise.all(
-      (retType.internalProperties ?? [])
-        .filter(
-          (
-            prop
-          ): prop is typeof prop & {
-            value: {
-              objectId: string;
-            };
-          } => prop.value?.objectId !== undefined
-        )
-        .map(async (prop) => [
-          prop.name,
-          await getValueForObjectId(prop.value.objectId),
-        ])
+  const entries = await Promise.all(
+    (retType.internalProperties ?? []).flatMap(async (prop) =>
+      prop.value?.objectId
+        ? [[prop.name, await getValueForObjectId(prop.value!.objectId!)]]
+        : []
     )
   );
+
+  return Object.fromEntries(entries);
 }

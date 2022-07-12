@@ -56,13 +56,13 @@ export function getFreeVariables(
    * A Set of all names known at this point in the AST.
    */
   lexicalScope: iSet<string> = iSet()
-): Promise<FreeVariable | undefined>[] {
-  return _discoverFreeVariables(node, lexicalScope);
+): Promise<Array<FreeVariable>> {
+  return Promise.all(_discoverFreeVariables(node, lexicalScope));
 
   function _discoverFreeVariables(
     node: ts.Node,
     lexicalScope: iSet<string> = iSet()
-  ): Promise<FreeVariable | undefined>[] {
+  ): Promise<FreeVariable>[] {
     if (
       ts.isFunctionDeclaration(node) ||
       ts.isFunctionExpression(node) ||
@@ -345,32 +345,25 @@ export async function getFreeVariableValue(
 
   // There should normally be an internal property called [[Scopes]]:
   // https://chromium.googlesource.com/v8/v8.git/+/3f99afc93c9ba1ba5df19f123b93cc3079893c9b/src/inspector/v8-debugger.cc#820
-  const scopes = internalProperties["[[Scopes]]"];
-  if (!scopes) {
-    throw new Error("Could not find [[Scopes]] property");
-  }
-
-  if (!scopes.value) {
-    throw new Error("[[Scopes]] property did not have [value]");
-  }
-
-  if (!scopes.value.objectId) {
-    throw new Error("[[Scopes]].value have objectId");
-  }
 
   // This is sneaky, but we can actually map back from the [[Scopes]] object to a real in-memory
   // v8 array-like value.  Note: this isn't actually a real array.  For example, it cannot be
   // iterated.  Nor can any actual methods be called on it. However, we can directly index into
-  // it, and we can.  Similarly, the 'object' type it optionally points at is not a true JS
+  // it.
+  // Similarly, the 'object' type it optionally points at is not a true JS
   // object.  So we can't call things like .hasOwnProperty on it.  However, the values pointed to
   // by 'object' are the real in-memory JS objects we are looking for.  So we can find and return
   // those successfully to our caller.
-  const scopesArray: { object?: Record<string, any> }[] =
-    await getValueForObjectId(scopes.value.objectId);
+  const scopes: { object?: Record<string, any> }[] | undefined =
+    internalProperties["[[Scopes]]"];
 
-  // scopesArray is ordered from innermost to outermost.
-  for (let i = 0, n = scopesArray.length; i < n; i++) {
-    const scope = scopesArray[i];
+  if (scopes === undefined) {
+    throw new Error(`[[Scopes]] internal property is not defined`);
+  }
+
+  // scopes are ordered from innermost to outermost.
+  for (let i = 0, n = scopes.length; i < n; i++) {
+    const scope = scopes[i];
     if (scope.object) {
       if (freeVariable in scope.object) {
         const val = scope.object[freeVariable];

@@ -1,10 +1,26 @@
 import fs from "fs";
 import path from "path";
 import * as uuid from "uuid";
-import {
-  serializeFunction,
-  SerializeFunctionArgs,
-} from "../src/closure/serializeClosure2";
+import { serializeFunction, SerializeFunctionProps } from "../src";
+
+test("maintain captured value", async () => {
+  let i = 0;
+
+  function foo() {
+    i += 1;
+  }
+
+  function bar() {
+    return i;
+  }
+
+  const handler = () => {
+    foo();
+    return bar();
+  };
+
+  await serializeFunction(handler);
+});
 
 test("capturing a reference to a function", () => {
   function foo() {
@@ -606,7 +622,7 @@ async function testCase<
   T,
   IsFactoryFunction extends boolean = false
 >(testCase: {
-  preSerializeValue?: SerializeFunctionArgs["preSerializeValue"];
+  preSerializeValue?: SerializeFunctionProps["preSerializeValue"];
   closure: F;
   isFactoryFunction?: IsFactoryFunction;
   args?: any;

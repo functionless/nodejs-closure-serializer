@@ -1,1 +1,3 @@
-export { serializeFunction } from "./serialize-closure";
+import "./require-hijack";
+
+export { serializeFunction, SerializeFunctionProps } from "./serialize-closure";
