@@ -1,1 +1,4 @@
-const a = global.wrapClosure(()=>{});
+const a = global.wrapClosure(
+  () => { },
+  () => ({ __filename })
+);
