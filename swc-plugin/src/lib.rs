@@ -45,11 +45,10 @@ impl ClosureSerializer {
     where
         T: StmtLike + VisitMutWith<Self>,
     {
-        let items = block.take();
-        items.into_iter().for_each(|stmt| {
+        block.into_iter().for_each(|stmt| {
             // hoist all of the function and var declarations in the module into scope
-            match stmt.try_into_stmt() {
-                Ok(stmt) => {
+            match stmt.as_stmt() {
+                Some(stmt) => {
                     match stmt {
                         Stmt::Decl(Decl::Var(var)) => {
                             if var.kind == VarDeclKind::Var {
@@ -75,14 +74,13 @@ impl ClosureSerializer {
 }
 
 impl VisitMut for ClosureSerializer {
-    noop_visit_mut_type!();
-
     // Implement necessary visit_mut_* methods for actual custom transform.
     // A comprehensive list of possible visitor methods can be found here:
     // https://rustdoc.swc.rs/swc_ecma_visit/trait.VisitMut.html
-    
-    fn visit_mut_module(&mut self, module: &mut Module) {
-        self.bind_hoisted_stmts_in_block(&mut module.body);
+
+    fn visit_mut_module_items(&mut self, items: &mut Vec<ModuleItem>) {
+        self.bind_hoisted_stmts_in_block(items);
+        items.iter_mut().for_each(|stmt| stmt.visit_mut_with(self));
     }
 
     fn visit_mut_block_stmt(&mut self, block: &mut BlockStmt) {
@@ -110,7 +108,7 @@ impl VisitMut for ClosureSerializer {
                     self.stack.bind_pat(&decl.name);
 
                     // then visit the initializer with the updated lexical scope
-                    init.visit_mut_children_with(self);
+                    init.visit_mut_with(self);
                 }
                 None if var.kind == VarDeclKind::Var => {
                     // hoisted var - we should ignore as it has already been hoisted at the beginning of the block
@@ -149,17 +147,19 @@ impl VisitMut for ClosureSerializer {
                     }
                 });
 
-                match arrow.body.take() {
-                    BlockStmtOrExpr::BlockStmt(mut stmt) => {
-                        // hoist all of the function/var declarations into scope
-                        self.bind_hoisted_stmts_in_block(&mut stmt.stmts);
 
-                        // process each of the children
-                        stmt.visit_mut_children_with(self);
-                    }
-                    BlockStmtOrExpr::Expr(expr) => {
+                if arrow.body.is_expr() {
+                  let expr = arrow.body.as_mut_expr().unwrap();
 
-                    }
+                  expr.visit_mut_with(self);
+                } else {
+                  let block = arrow.body.as_mut_block_stmt().unwrap();
+
+                  // hoist all of the function/var declarations into scope
+                  self.bind_hoisted_stmts_in_block(&mut block.stmts);
+
+                  // process each of the children
+                  block.visit_mut_children_with(self);
                 }
 
                 // global.wrapClosure((...args) => { ..stmts })
@@ -189,9 +189,6 @@ impl VisitMut for ClosureSerializer {
             }
             _ => {}
         }
-        let foo = quote_ident!("foo");
-        *expr = Expr::Ident(foo);
-
     }
 }
 
