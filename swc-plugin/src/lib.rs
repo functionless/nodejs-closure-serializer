@@ -1,10 +1,11 @@
-use swc_common::util::take::Take;
-use swc_plugin::{ast::*, plugin_transform, TransformPluginProgramMetadata, utils::*};
 use std::collections::{HashMap};
-
+use swc_common::{chain, Mark};
+use swc_common::util::take::Take;
+use swc_ecma_visit::Fold;
+use swc_plugin::{ast::*, plugin_transform, TransformPluginProgramMetadata, utils::*};
 
 #[plugin_transform]
-pub fn process_transform(mut program: Program, _metadata: TransformPluginProgramMetadata) -> Program {
+pub fn wrap_closures(mut program: Program, _metadata: TransformPluginProgramMetadata) -> Program {
     program.visit_mut_with(&mut ClosureSerializer {
         stack: LexicalScope::new()
     });
@@ -12,6 +13,11 @@ pub fn process_transform(mut program: Program, _metadata: TransformPluginProgram
     program
 }
 
+pub fn wrap(top_level_mark: Mark) -> impl Fold + VisitMut {
+    as_folder(ClosureSerializer {
+        stack: LexicalScope::new()
+    })
+}
 
 pub struct ClosureSerializer {
     /**
@@ -156,7 +162,6 @@ impl VisitMut for ClosureSerializer {
                     }
                 }
 
-                // global.wrapClosure
                 // global.wrapClosure((...args) => { ..stmts })
                 let call = CallExpr {
                     span: arrow.span,
@@ -170,7 +175,7 @@ impl VisitMut for ClosureSerializer {
                     args: vec!(ExprOrSpread {
                         expr: Box::new(Expr::Arrow(arrow.take())),
                         spread: None
-                    }),
+                    }), // TODO: inject metadata about free variables
                     type_args: None
                 };
 
