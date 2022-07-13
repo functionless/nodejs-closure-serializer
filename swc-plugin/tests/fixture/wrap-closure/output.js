@@ -1,4 +1,12 @@
+let i = 0;
+
 const a = global.wrapClosure(
   () => { },
-  () => ({ __filename })
+  () => ({
+    __filename,
+    free: [{
+      name: "i",
+      
+    }]
+  })
 );
