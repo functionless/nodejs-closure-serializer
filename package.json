@@ -59,6 +59,7 @@
     "normalize-package-data": "^4.0.0",
     "read-package-tree": "^5.3.1",
     "semver": "^7.3.7",
+    "swc-closure": "file:../swc-closure",
     "ts-node": "^10.8.0",
     "upath": "^2.0.1",
     "uuid": "^8.3.2"

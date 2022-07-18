@@ -30,6 +30,7 @@ const project = new typescript.TypeScriptProject({
     "upath",
     "uuid",
     "immutable",
+    "swc-closure@file:../swc-closure",
   ] /* Runtime dependencies of this module. */,
   description:
     "A fork of the nodejs closure serializer in @pulumi/pulumi" /* The description is just a string that helps people understand the purpose of the package. */,

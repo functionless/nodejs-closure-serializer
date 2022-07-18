@@ -139,6 +139,11 @@
       "type": "runtime"
     },
     {
+      "name": "swc-closure",
+      "version": "file:../swc-closure",
+      "type": "runtime"
+    },
+    {
       "name": "ts-node",
       "type": "runtime"
     },
