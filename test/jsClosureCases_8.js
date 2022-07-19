@@ -6,72 +6,28 @@ cases.push({
     title: "Async anonymous function closure (js)",
     // eslint-disable-next-line
     func: async function (a) { await a; },
-    expectText: `exports.handler = __f0;
-
-function __f0(__0) {
-  return (function() {
-    with({  }) {
-
-return async function (a) { await a; };
-
-    }
-  }).apply(undefined, undefined).apply(this, arguments);
-}
-`,
+    snapshot: true
 });
 
 cases.push({
     title: "Async anonymous function closure - extra space (js)",
     // eslint-disable-next-line
     func: async  function (a) { await a; },
-    expectText: `exports.handler = __f0;
-
-function __f0(__0) {
-  return (function() {
-    with({  }) {
-
-return async function (a) { await a; };
-
-    }
-  }).apply(undefined, undefined).apply(this, arguments);
-}
-`,
+    snapshot: true
 });
 
 cases.push({
     title: "Async named function closure (js)",
     // eslint-disable-next-line
     func: async function foo(a) { await a; },
-    expectText: `exports.handler = __foo;
-
-function __foo(__0) {
-  return (function() {
-    with({ foo: __foo }) {
-
-return async function /*foo*/(a) { await a; };
-
-    }
-  }).apply(undefined, undefined).apply(this, arguments);
-}
-`,
+    snapshot: true,
 });
 
 cases.push({
     title: "Async arrow function closure (js)",
     // eslint-disable-next-line
     func: async (a) => { await a; },
-    expectText: `exports.handler = __f0;
-
-function __f0(__0) {
-  return (function() {
-    with({  }) {
-
-return async (a) => { await a; };
-
-    }
-  }).apply(undefined, undefined).apply(this, arguments);
-}
-`,
+    snapshot: true,
 });
 
 // cases.push({

@@ -28,19 +28,29 @@ const project = new typescript.TypeScriptProject({
     "semver",
     "ts-node",
     "upath",
+    "uuid",
+    "immutable",
+    "swc-closure@file:../swc-closure",
+    "@swc/core",
+    "@swc/register",
+    "@swc/jest",
   ] /* Runtime dependencies of this module. */,
   description:
     "A fork of the nodejs closure serializer in @pulumi/pulumi" /* The description is just a string that helps people understand the purpose of the package. */,
   devDeps: [
+    "@swc/cli",
     "@types/node",
     "@types/normalize-package-data",
     "@types/read-package-tree",
     "@types/semver",
+    "@types/uuid",
     "@typescript-eslint/eslint-plugin",
     "@typescript-eslint/parser",
-    "eslint",
+    "aws-serverless-express",
     "eslint-plugin-header",
     "eslint-plugin-import",
+    "eslint",
+    "express",
     "mockpackage@file:test/mockpackage",
   ] /* Build dependencies for this module. */,
   peerDeps: ["typescript"],
@@ -61,10 +71,8 @@ const project = new typescript.TypeScriptProject({
     jestConfig: {
       collectCoverage: false,
       coveragePathIgnorePatterns: ["/test/", "/node_modules/"],
-      globals: {
-        "ts-jest": {
-          isolatedModules: true,
-        },
+      transform: {
+        "^.+\\.(t|j)sx?$": "@swc/jest",
       },
     },
   },
@@ -76,6 +84,12 @@ const project = new typescript.TypeScriptProject({
   prettier: true,
   prettierOptions: {},
 });
+project.package.addField("gypfile", true);
+project.addGitIgnore("/test-generated-closures/");
+project.addGitIgnore("/build");
+project.addGitIgnore("/.swc");
+project.addPackageIgnore("/build/");
+project.addPackageIgnore("!/native/");
 
 new GitHooksPreCommitComponent(project);
 

@@ -1,6 +1,10 @@
 {
   "dependencies": [
     {
+      "name": "@swc/cli",
+      "type": "build"
+    },
+    {
       "name": "@types/jest",
       "type": "build"
     },
@@ -22,6 +26,10 @@
       "type": "build"
     },
     {
+      "name": "@types/uuid",
+      "type": "build"
+    },
+    {
       "name": "@typescript-eslint/eslint-plugin",
       "version": "^5",
       "type": "build"
@@ -29,6 +37,10 @@
     {
       "name": "@typescript-eslint/parser",
       "version": "^5",
+      "type": "build"
+    },
+    {
+      "name": "aws-serverless-express",
       "type": "build"
     },
     {
@@ -58,6 +70,10 @@
     {
       "name": "eslint",
       "version": "^8",
+      "type": "build"
+    },
+    {
+      "name": "express",
       "type": "build"
     },
     {
@@ -111,6 +127,22 @@
       "type": "peer"
     },
     {
+      "name": "@swc/core",
+      "type": "runtime"
+    },
+    {
+      "name": "@swc/jest",
+      "type": "runtime"
+    },
+    {
+      "name": "@swc/register",
+      "type": "runtime"
+    },
+    {
+      "name": "immutable",
+      "type": "runtime"
+    },
+    {
       "name": "normalize-package-data",
       "type": "runtime"
     },
@@ -123,11 +155,20 @@
       "type": "runtime"
     },
     {
+      "name": "swc-closure",
+      "version": "file:../swc-closure",
+      "type": "runtime"
+    },
+    {
       "name": "ts-node",
       "type": "runtime"
     },
     {
       "name": "upath",
+      "type": "runtime"
+    },
+    {
+      "name": "uuid",
       "type": "runtime"
     }
   ],

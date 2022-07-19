@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json.schemastore.org/swcrc",
+  "jsc": {
+    "parser": {
+      "syntax": "typescript",
+      "dynamicImport": false,
+      "decorators": false,
+      "hidden": {
+        "jest": true
+      }
+    },
+    "transform": null,
+    "target": "es2021",
+    "loose": false,
+    "externalHelpers": false,
+    "experimental": {
+      "plugins": [["swc-closure", {}]]
+    }
+  },
+  "sourceMaps": "inline",
+  "minify": false,
+  "module": {
+    "type": "commonjs"
+  }
+}

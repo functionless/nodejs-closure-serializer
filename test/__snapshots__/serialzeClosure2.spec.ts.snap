@@ -1,0 +1,434 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`all binding patterns should be considered when detecting free variables 1`] = `
+"const v1 = (() => class FreeClass {
+})();
+const v2 = ((FreeClass, free) => (
+// argument identifier
+argument, 
+// object binding pattern in argument
+{ objArgument }, 
+// array binding pattern in argument
+[arrayArgument], 
+// nested array binding pattern in argument
+{ a: [arrayInObjectArgument] }, 
+// nested object binding pattern in argument
+{ b: { objectBindingInObjectBindingArgument } }) => {
+    function notHoisted() {
+        return \\"notHoisted\\";
+    }
+    const arrowFunction = () => \\"arrowFunction\\";
+    const functionExpression = function () {
+        return \\"functionExpression\\";
+    };
+    class ClassDeclaration extends FreeClass {
+        //                              ^ free
+        constructor(text = \\"ClassDeclaration\\") {
+            super();
+            this.text = text;
+        }
+        get() {
+            return \\"ClassDeclaration\\";
+        }
+    }
+    const ClassExpression = class extends FreeClass {
+        //                                    ^ free
+        get() {
+            return \\"ClassExpression\\";
+        }
+    };
+    const NamedClassExpression = class NamedClassExpression extends FreeClass {
+        //                                                              ^ free
+        get() {
+            return \\"NamedClassExpression\\";
+        }
+    };
+    function SuperClass(text) {
+        this.text = text;
+    }
+    SuperClass.prototype.get = function () {
+        return this.text;
+    };
+    function TraditionalClass() {
+        SuperClass.call(this, \\"TraditionalClass\\");
+    }
+    Object.setPrototypeOf(TraditionalClass.prototype, SuperClass.prototype);
+    // single variable declaration with ts.Identifier
+    const id = \\"id\\";
+    // variable declaration list
+    const a = \\"a\\", b = \\"b\\";
+    // object binding pattern
+    const { objPattern1, a: [arrayPatternInObject], } = {
+        objPattern1: \\"objPattern1\\",
+        a: [\\"arrayPatternInObject\\"],
+    };
+    // object binding patterns in a variable declaration list
+    const { objPatternList1 } = {
+        objPatternList1: \\"objPatternList1\\",
+    }, { objPatternList2 } = {
+        objPatternList2: \\"objPatternList2\\",
+    };
+    // array binding pattern
+    const [arrayPattern1, { objPatternInArray }] = [
+        \\"arrayPattern1\\",
+        { objPatternInArray: \\"objPatternInArray\\" },
+    ];
+    // array binding pattern list
+    const [arrayPatternList1] = [\\"arrayPatternList1\\"], [arrayPatternList2] = [\\"arrayPatternList2\\"];
+    return [
+        argument,
+        objArgument,
+        arrayArgument,
+        arrayInObjectArgument,
+        objectBindingInObjectBindingArgument,
+        free,
+        id,
+        a,
+        b,
+        objPattern1,
+        arrayPatternInObject,
+        objPatternList1,
+        objPatternList2,
+        arrayPattern1,
+        objPatternInArray,
+        arrayPatternList1,
+        arrayPatternList2,
+        notHoisted(),
+        hoisted(),
+        arrowFunction(),
+        functionExpression(),
+        new ClassDeclaration().get(),
+        new ClassExpression().get(),
+        new NamedClassExpression().get(),
+        new TraditionalClass().get(),
+    ];
+    function hoisted() {
+        return \\"hoisted\\";
+    }
+})(v1, \\"free\\");
+exports.handler = v2"
+`;
+
+exports[`arrow function nested within a function 1`] = `
+"var v2 = { internal: \\"value\\" };
+Object.setPrototypeOf(v2, Object.prototype);
+const v1 = (_self => function foo() {
+    return ((val) => \`\${val} \${this.internal}\`)(\\"hello\\");
+}.bind(_self))(v2);
+exports.handler = v1"
+`;
+
+exports[`call method on class with prototype swapped 1`] = `
+"const v2 = (() => class B {
+    constructor(internal) {
+        this.internal = internal;
+    }
+    foo() {
+        return \`\${this.internal} b\`;
+    }
+})();
+const v1 = (A => class C extends A {
+})(v2);
+const v3 = (C => () => new C(\\"value\\").foo())(v1);
+exports.handler = v3"
+`;
+
+exports[`call method on traditional function prototype class 1`] = `
+"const v5 = (() => function () {
+    return this.noise;
+})();
+var v3 = { speak: v5 };
+Object.setPrototypeOf(v3, Object.prototype);
+var v2 = { noise: \\"bork\\" };
+Object.setPrototypeOf(v2, v3);
+const v6 = (() => function Animal(noise) {
+    this.noise = noise;
+})();
+const v1 = (Animal => function Dog(noise) {
+    Animal.call(this, \`bark \${noise}\`);
+})(v6);
+const v7 = ((Dog, animal) => () => [new Dog(\\"woof\\").speak(), animal.speak()])(v1, v2);
+exports.handler = v7"
+`;
+
+exports[`call static method on class with prototype swapped 1`] = `
+"const v2 = (() => class B {
+    static foo() {
+        return \\"B\\";
+    }
+})();
+const v1 = (A => class C extends A {
+})(v2);
+const v3 = (C => () => C.foo())(v1);
+exports.handler = v3"
+`;
+
+exports[`call the exports.handler if isFactoryFunction 1`] = `
+"const v1 = (() => function expensiveTask() {
+    return \\"world\\";
+})();
+const v2 = (expensiveTask => () => {
+    const expensive = expensiveTask();
+    return (handleInput) => {
+        return \`\${handleInput} \${expensive}\`;
+    };
+})(v1);
+exports.handler = v2()"
+`;
+
+exports[`capturing a reference to a function 1`] = `
+"const v1 = (() => function foo() {
+    return \\"hello\\";
+})();
+const v2 = (foo => () => foo())(v1);
+exports.handler = v2"
+`;
+
+exports[`capturing a reference to a native bound async method 1`] = `
+"const v2 = (() => function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try {
+            step(generator.next(value));
+        }
+        catch (e) {
+            reject(e);
+        } }
+        function rejected(value) { try {
+            step(generator[\\"throw\\"](value));
+        }
+        catch (e) {
+            reject(e);
+        } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+})();
+var v4 = { internal: \\"value\\" };
+Object.setPrototypeOf(v4, Object.prototype);
+const v3 = ((_self, __awaiter) => function foo() {
+    return __awaiter(this, void 0, void 0, function* () {
+        return this.internal;
+    });
+}.bind(_self))(v4, v2);
+const v6 = (func => () => func())(v3);
+exports.handler = v6"
+`;
+
+exports[`capturing a reference to a native bound function 1`] = `
+"var v3 = { internal: \\"value\\" };
+Object.setPrototypeOf(v3, Object.prototype);
+const v2 = (_self => function foo() {
+    return this.internal;
+}.bind(_self))(v3);
+const v5 = (f => () => f())(v2);
+exports.handler = v5"
+`;
+
+exports[`capturing a reference to a native bound generator method 1`] = `
+"var v4 = {};
+Object.setPrototypeOf(v4, Object.prototype);
+var v3 = { i: 0 };
+Object.setPrototypeOf(v3, v4);
+const v2 = (_self => function* foo() {
+    while ((this.i += 1) <= 1) {
+        yield \\"hello\\";
+    }
+}.bind(_self))(v3);
+const v6 = (func => () => func())(v2);
+exports.handler = v6"
+`;
+
+exports[`capturing a reference to a native bound method 1`] = `
+"var v3 = { internal: \\"value\\" };
+Object.setPrototypeOf(v3, Object.prototype);
+const v2 = (_self => function foo(a, { b }, [c]) {
+    return [this.internal, a, b, c];
+}.bind(_self))(v3);
+const v5 = (func => () => func(\\"a\\", { b: \\"b\\" }, [\\"c\\"]))(v2);
+exports.handler = v5"
+`;
+
+exports[`capturing a reference to a string 1`] = `
+"const v1 = (foo => () => foo)(\\"hello\\");
+exports.handler = v1"
+`;
+
+exports[`capturing a reference to an array 1`] = `
+"const v2 = (foo => () => foo)([\\"hello\\"]);
+exports.handler = v2"
+`;
+
+exports[`capturing a reference to an array containing a function 1`] = `
+"const v2 = (() => function bar() {
+    return \\"hello\\";
+})();
+const v3 = (foo => () => foo)([v2]);
+exports.handler = v3"
+`;
+
+exports[`class method 1`] = `
+"var v2 = {};
+Object.setPrototypeOf(v2, Object.prototype);
+var v1 = { internal: \\"hello\\" };
+Object.setPrototypeOf(v1, v2);
+const v4 = (foo => () => foo.foo())(v1);
+exports.handler = v4"
+`;
+
+exports[`class mix-in 1`] = `
+"var v3 = {};
+Object.setPrototypeOf(v3, Object.prototype);
+var v2 = {};
+Object.setPrototypeOf(v2, v3);
+var v1 = { internal: \\"value\\" };
+Object.setPrototypeOf(v1, v2);
+const v5 = (a => () => a.foo())(v1);
+exports.handler = v5"
+`;
+
+exports[`should not capture global values as free variables 1`] = `
+"const v1 = (() => () => {
+    // Object.getOwnPropertyNames(global).sort().join(';\\\\n')
+    // $0;
+    // $1;
+    // $2;
+    // $3;
+    // $4;
+    // $_;
+    AbortController;
+    AbortSignal;
+    // AggregateError;
+    Array;
+    ArrayBuffer;
+    Atomics;
+    BigInt;
+    BigInt64Array;
+    BigUint64Array;
+    Boolean;
+    Buffer;
+    DataView;
+    Date;
+    Error;
+    EvalError;
+    Event;
+    EventTarget;
+    // FinalizationRegistry;
+    Float32Array;
+    Float64Array;
+    Function;
+    Infinity;
+    Int16Array;
+    Int32Array;
+    Int8Array;
+    Intl;
+    JSON;
+    Map;
+    Math;
+    NaN;
+    Number;
+    Object;
+    Promise;
+    Proxy;
+    RangeError;
+    ReferenceError;
+    Reflect;
+    RegExp;
+    Set;
+    SharedArrayBuffer;
+    String;
+    Symbol;
+    SyntaxError;
+    TextDecoder;
+    TextEncoder;
+    TypeError;
+    URIError;
+    URL;
+    URLSearchParams;
+    Uint16Array;
+    Uint32Array;
+    Uint8Array;
+    Uint8ClampedArray;
+    WeakMap;
+    // WeakRef;
+    WeakSet;
+    WebAssembly;
+    // afterAll;
+    // afterEach;
+    atob;
+    // beforeAll;
+    // beforeEach;
+    btoa;
+    // clear;
+    clearImmediate;
+    clearInterval;
+    clearTimeout;
+    console;
+    // copy;
+    // debug;
+    decodeURI;
+    decodeURIComponent;
+    describe;
+    // dir;
+    // dirxml;
+    encodeURI;
+    encodeURIComponent;
+    escape;
+    eval;
+    // expect;
+    // fdescribe;
+    // fit;
+    global;
+    globalThis;
+    // inspect;
+    isFinite;
+    isNaN;
+    // it;
+    // jest-symbol-do-not-touch;
+    // keys;
+    // monitor;
+    parseFloat;
+    parseInt;
+    performance;
+    process;
+    // profile;
+    // profileEnd;
+    // queryObjects;
+    queueMicrotask;
+    // require; // can't test this, stupid jest overrides it and we end up traversing all of JEST
+    setImmediate;
+    setInterval;
+    setTimeout;
+    // table;
+    // test;
+    // ts - jest;
+    // undebug;
+    undefined;
+    unescape;
+    // unmonitor;
+    // values;
+    // xdescribe;
+    // xit;
+    // xtest;
+})();
+exports.handler = v1"
+`;
+
+exports[`super class method 1`] = `
+"var v3 = {};
+Object.setPrototypeOf(v3, Object.prototype);
+var v2 = {};
+Object.setPrototypeOf(v2, v3);
+var v1 = { internal: \\"hello\\" };
+Object.setPrototypeOf(v1, v2);
+const v5 = (foo => () => foo.foo())(v1);
+exports.handler = v5"
+`;
+
+exports[`value captured multiple times is only emitted once 1`] = `
+"const v2 = (() => function bar() {
+    return \\"hello\\";
+})();
+const v3 = (foo => () => foo)([v2, v2, v2]);
+exports.handler = v3"
+`;
