@@ -4,7 +4,10 @@
     "parser": {
       "syntax": "typescript",
       "dynamicImport": false,
-      "decorators": false
+      "decorators": false,
+      "hidden": {
+        "jest": true
+      }
     },
     "transform": null,
     "target": "es2021",
@@ -14,6 +17,7 @@
       "plugins": [["swc-closure", {}]]
     }
   },
+  "sourceMaps": "inline",
   "minify": false,
   "module": {
     "type": "commonjs"

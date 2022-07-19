@@ -1,4 +1,4 @@
-import * as globals from "../src/globals";
+import { getClosure } from "../src/free-variables";
 
 test("should parse free variable names", () => {
   let a = "a1";
@@ -8,9 +8,9 @@ test("should parse free variable names", () => {
     return [a, b];
   }
 
-  globals.registerClosure(foo, __filename, () => [a, b]);
+  (foo as any)["[[Closure]]"] = [__filename, () => [a, b]];
 
-  const closure = globals.getClosure(foo);
+  const closure = getClosure(foo);
 
   expect(closure).toEqual({
     filename: __filename,
@@ -26,9 +26,9 @@ test("should parse empty array of free variable names", () => {
     return;
   }
 
-  globals.registerClosure(foo, __filename, () => []);
+  (foo as any)["[[Closure]]"] = [__filename, () => []];
 
-  const closure = globals.getClosure(foo);
+  const closure = getClosure(foo);
 
   expect(closure).toEqual({
     filename: __filename,

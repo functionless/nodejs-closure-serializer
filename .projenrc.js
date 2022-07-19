@@ -71,13 +71,8 @@ const project = new typescript.TypeScriptProject({
     jestConfig: {
       collectCoverage: false,
       coveragePathIgnorePatterns: ["/test/", "/node_modules/"],
-      // globals: {
-      //   "ts-jest": {
-      //     isolatedModules: true,
-      //   },
-      // },
       transform: {
-        "^.+\\.(t|j)sx?$": "./lib/jest",
+        "^.+\\.(t|j)sx?$": "@swc/jest",
       },
     },
   },

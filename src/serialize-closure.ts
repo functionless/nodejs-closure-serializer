@@ -2,8 +2,8 @@ import v8 from "v8";
 v8.setFlagsFromString("--allow-natives-syntax");
 
 import ts from "typescript";
-import { getFreeVariables, FreeVariable } from "./free-variable";
-import { getFunctionIdentifiers, getFunctionInternals } from "./function";
+import { getBoundFunction } from "./bound-function";
+import { FreeVariables, getClosure } from "./free-variables";
 import { FunctionNode, parseFunction } from "./parse-function";
 import { transformFunction } from "./transform-function";
 import {
@@ -118,7 +118,7 @@ export async function serializeFunction(
         // This is a function created with `.bind(self)`. We then use the inspector API
         // to discover the value of the internal property, `[[BoundThis]]`, serialize that
         // function and then re-construct the `.bind` call in the remote code.
-        const internals = await getFunctionInternals(func);
+        const internals = getBoundFunction(func);
         if (internals?.["[[TargetFunction]]"]) {
           return serializeFunction(internals["[[TargetFunction]]"], {
             this: internals["[[BoundThis]]"],
@@ -148,19 +148,14 @@ export async function serializeFunction(
         );
       }
 
+      const closure = getClosure(func);
+
       // walk the AST and resolve any free variables - i.e. any ts.Identifiers that point
       // to a value outside of the closure's scope.
-      const freeVariables = (await getFreeVariables(func, functionNode)).filter(
-        (a): a is Exclude<typeof a, undefined> => a !== undefined
-      );
+      const freeVariables = closure?.captured ?? {};
 
       // when naming variables,
-      const illegalNames = new Set([
-        ...freeVariables.map(({ variableName }) => variableName),
-        // collect all ids used within the closure
-        // we will use this to ensure there are no name conflicts with hoisted closure variables
-        ...getFunctionIdentifiers(functionNode!),
-      ]);
+      const illegalNames = new Set(Object.keys(freeVariables));
 
       if (serializeProps.postProcess?.length) {
         // allow user to apply AST post-processing to the serialized closure
@@ -370,10 +365,10 @@ export async function serializeFunction(
       async function emitClosure(
         closureName: ts.Identifier,
         expr: FunctionNode,
-        freeVariables: FreeVariable[]
+        freeVariables: FreeVariables
       ): Promise<void> {
         const lexicalScope = new Set(
-          freeVariables.map((freeVariable) => freeVariable.variableName)
+          Object.entries(freeVariables).map(([varName]) => varName)
         );
 
         /**
@@ -445,14 +440,15 @@ export async function serializeFunction(
             )
           : innerClosureExpr();
 
-        const freeVariableArgs = freeVariables.map((freeVariable) =>
-          ts.factory.createParameterDeclaration(
-            undefined,
-            undefined,
-            undefined,
-            freeVariable.variableName,
-            undefined
-          )
+        const freeVariableArgs = Object.entries(freeVariables).map(
+          ([varName]) =>
+            ts.factory.createParameterDeclaration(
+              undefined,
+              undefined,
+              undefined,
+              varName,
+              undefined
+            )
         );
 
         const initClosure = ts.factory.createCallExpression(
@@ -472,7 +468,7 @@ export async function serializeFunction(
           [
             boundThis ? [boundThis] : [],
             superValue ? [superValue] : [],
-            freeVariables.map((freeVariable) => freeVariable.variableValue),
+            Object.entries(freeVariables).map(([, varValue]) => varValue),
           ].flat()
         );
 
