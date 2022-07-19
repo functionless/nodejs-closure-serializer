@@ -31,10 +31,14 @@ const project = new typescript.TypeScriptProject({
     "uuid",
     "immutable",
     "swc-closure@file:../swc-closure",
+    "@swc/core",
+    "@swc/register",
+    "@swc/jest",
   ] /* Runtime dependencies of this module. */,
   description:
     "A fork of the nodejs closure serializer in @pulumi/pulumi" /* The description is just a string that helps people understand the purpose of the package. */,
   devDeps: [
+    "@swc/cli",
     "@types/node",
     "@types/normalize-package-data",
     "@types/read-package-tree",
@@ -67,10 +71,13 @@ const project = new typescript.TypeScriptProject({
     jestConfig: {
       collectCoverage: false,
       coveragePathIgnorePatterns: ["/test/", "/node_modules/"],
-      globals: {
-        "ts-jest": {
-          isolatedModules: true,
-        },
+      // globals: {
+      //   "ts-jest": {
+      //     isolatedModules: true,
+      //   },
+      // },
+      transform: {
+        "^.+\\.(t|j)sx?$": "./lib/jest",
       },
     },
   },
@@ -85,6 +92,7 @@ const project = new typescript.TypeScriptProject({
 project.package.addField("gypfile", true);
 project.addGitIgnore("/test-generated-closures/");
 project.addGitIgnore("/build");
+project.addGitIgnore("/.swc");
 project.addPackageIgnore("/build/");
 project.addPackageIgnore("!/native/");
 

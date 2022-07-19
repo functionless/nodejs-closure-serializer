@@ -1,6 +1,10 @@
 {
   "dependencies": [
     {
+      "name": "@swc/cli",
+      "type": "build"
+    },
+    {
       "name": "@types/jest",
       "type": "build"
     },
@@ -121,6 +125,18 @@
     {
       "name": "typescript",
       "type": "peer"
+    },
+    {
+      "name": "@swc/core",
+      "type": "runtime"
+    },
+    {
+      "name": "@swc/jest",
+      "type": "runtime"
+    },
+    {
+      "name": "@swc/register",
+      "type": "runtime"
     },
     {
       "name": "immutable",

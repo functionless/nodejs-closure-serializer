@@ -1,57 +1,142 @@
-import vm from "vm";
-
-type OwnFunctions<T extends object> = {
-  [k in FunctionProperties<T>]: T[k];
-};
-
-type FunctionProperties<T extends object> = {
-  [k in keyof T]: T extends Function ? k : never;
-}[keyof T];
+import { parseSync } from "@swc/core";
 
 /**
- * A list of objects containing stringified form of all of the Global object's Own Function Properties.
+ * This file adds the `__fnl_func` function to the global object.
  *
- * We will use these string forms to detect augmentations (such as poly-filling) to the primitive types.
+ * It must be run prior to the `@swc/register` hook runs as part of the `node -r <require>` step or else
+ * transformed code will break.
  */
-export const unModifiedGlobalOwnFunctions: [
-  OwnFunctions<typeof Object>,
-  OwnFunctions<typeof Object["prototype"]>,
-  OwnFunctions<typeof Function>,
-  OwnFunctions<typeof Function["prototype"]>
-] = (() => {
-  return vm.runInNewContext(
-    (() => {
-      // run a function in an isolated VM that walks through each of the functions on global objects
-      // and returns a stringified version of that function
-      // we will use this stringified form to detect when a global object has been augmented by another module
-      // only augmented functions will be serialized
-      return [
-        getOwnPropertyFunctionStringForms(Object),
-        getOwnPropertyFunctionStringForms(Object.prototype),
-        getOwnPropertyFunctionStringForms(Function),
-        getOwnPropertyFunctionStringForms(Function.prototype),
-        getOwnPropertyFunctionStringForms(Array),
-        getOwnPropertyFunctionStringForms(Array.prototype),
-      ];
 
-      /**
-       * Walk through each of the Own Properties that are Functions and stringify them
-       *
-       * @param object containing properties that are Functions
-       * @returns map of functionName to stringified Function
-       */
-      function getOwnPropertyFunctionStringForms<T extends object>(
-        object: T
-      ): Record<Extract<keyof T, string>, string> {
-        const functions: any = {};
-        for (const ownPropertyName in Object.getOwnPropertyNames(object)) {
-          const ownProperty = object[ownPropertyName as keyof typeof object];
-          if (typeof ownProperty === "function") {
-            functions[ownPropertyName] = ownProperty.toString();
+export interface UnparsedClosure {
+  filename: string;
+  captured: () => CapturedVariables;
+}
+
+type CapturedVariables = any[];
+
+export interface Closure {
+  filename: string;
+  captured: Record<string, any>;
+}
+
+export type BoundFunction = [
+  targetFunc: Function,
+  boundThis: any,
+  boundArgs: any[]
+];
+
+declare global {
+  function __fnl_func(
+    func: Function,
+    filename: string,
+    captured: () => CapturedVariables
+  ): void;
+}
+global.__fnl_func = registerClosure;
+
+export function registerClosure(
+  func: Function,
+  filename: string,
+  captured: () => CapturedVariables
+) {
+  if (closures.has(func)) {
+    throw new Error(`illegal override of function captured closure`);
+  }
+  closures.set(func, {
+    filename,
+    captured: captured,
+  });
+  return func;
+}
+
+const closures = globalSingleton(
+  Symbol.for("@functionless/captured-closures"),
+  () => new WeakMap<Function, UnparsedClosure>()
+);
+
+const bind = Function.prototype.bind;
+
+Function.prototype.bind = function (boundThis: any, ...boundArgs: any[]) {
+  const bound = bind.call(this, boundThis, ...boundArgs);
+  boundFunctions.set(bound, [this, boundThis, boundArgs]);
+  return bound;
+};
+
+const boundFunctions = globalSingleton(
+  Symbol.for("@functionless/bound-functions"),
+  () => new WeakMap<Function, BoundFunction>()
+);
+
+// cache parsed closures
+const parsedClosureCache = globalSingleton(
+  Symbol.for("@functionless/parsed-closure-cache"),
+  () => new WeakMap<Function, Closure>()
+);
+
+export function getClosure(func: Function): Closure | undefined {
+  const closure = closures.get(func);
+  if (closure === undefined) {
+    return undefined;
+  }
+
+  if (!parsedClosureCache.has(func)) {
+    // because of SWC's hygiene step where variables are renamed
+    // we cannot inject the name of a variable as a string literal
+    // as a workaround, we parse the closure that returns the free variables
+    // which is in the form: () => [a, b, c]
+
+    const ast = parseSync(closure.captured.toString(), {
+      syntax: "ecmascript",
+      script: false,
+    });
+
+    if (ast.body.length !== 1) {
+      throw new Error(`expected a single statement`);
+    }
+    const stmt = ast.body[0]!;
+    if (stmt.type !== "ExpressionStatement") {
+      throw new Error(`expected an ExpressionStatement, but got ${stmt.type}`);
+    } else if (stmt.expression.type !== "ArrowFunctionExpression") {
+      throw new Error(
+        `expected ExpressionStatement's expression to be an ArrowFunctionExpression, but got ${stmt.expression.type}`
+      );
+    } else if (stmt.expression.body.type !== "ArrayExpression") {
+      throw new Error(
+        `expected ArrowFunctionExpressions's body to be an ArrayExpression, but got ${stmt.expression.body.type}`
+      );
+    }
+
+    const variableValues = closure.captured();
+
+    if (stmt.expression.body.elements.length !== variableValues.length) {
+      throw new Error(
+        `expected ArrayExpression to have ${variableValues.length} elements, but has ${stmt.expression.body.elements.length}`
+      );
+    }
+
+    parsedClosureCache.set(func, {
+      filename: closure.filename,
+      captured: Object.fromEntries(
+        stmt.expression.body.elements.map((variable, i) => {
+          if (variable?.expression.type !== "Identifier") {
+            throw new Error(
+              `expected item ${i} in ArrayExpression to be an Identifier, but got ${variable?.expression.type}`
+            );
           }
-        }
-        return functions;
-      }
-    }).toString()
-  );
-})();
+
+          return [variable.expression.value, variableValues[i]];
+        })
+      ),
+    });
+  }
+
+  return parsedClosureCache.get(func);
+}
+
+export function getBoundFunction(func: Function): BoundFunction | undefined {
+  return boundFunctions.get(func);
+}
+
+function globalSingleton<T>(key: symbol, create: () => T): T {
+  return ((global as any)[key] = (global as any)[key] ?? create());
+}

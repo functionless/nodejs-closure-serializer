@@ -5,13 +5,12 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "type": "pwa-node",
+      "type": "node",
       "request": "launch",
       "name": "Launch Program",
-      "skipFiles": [
-        "<node_internals>/**"
-      ],
-      "program": "${workspaceFolder}/t.js"
+      "skipFiles": ["<node_internals>/**"],
+      "program": "${workspaceFolder}/t.js",
+      "runtimeArgs": ["-r", "${workspaceFolder}/lib/register.js"]
     }
   ]
 }
