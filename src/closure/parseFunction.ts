@@ -14,6 +14,7 @@
 
 import * as ts from "typescript";
 import * as log from "../log";
+import { SerializeFunctionArgs } from "./serializeClosure";
 import * as utils from "./utils";
 
 /** @internal */
@@ -103,8 +104,11 @@ const nodeModuleGlobals: { [key: string]: boolean } = {
 // particular, it has expectations around how functions/lambdas/methods/generators/constructors etc.
 // are represented.  If these change, this will likely break us.
 /** @internal */
-export function parseFunction(funcString: string): [string, ParsedFunction] {
-  const [error, functionCode] = parseFunctionCode(funcString);
+export async function parseFunction(
+  funcString: string,
+  args: SerializeFunctionArgs
+): Promise<[string, ParsedFunction]> {
+  const [error, functionCode] = await parseFunctionCode(funcString);
   if (error) {
     return [error, <any>undefined];
   }
@@ -112,7 +116,7 @@ export function parseFunction(funcString: string): [string, ParsedFunction] {
   // In practice it's not guaranteed that a function's toString is parsable by TypeScript.
   // V8 intrinsics are prefixed with a '%' and TypeScript does not consider that to be a valid
   // identifier.
-  const [parseError, file] = createSourceFile(functionCode);
+  const [parseError, file] = createSourceFile(functionCode, args);
   if (parseError) {
     return [parseError, <any>undefined];
   }
@@ -128,6 +132,10 @@ export function parseFunction(funcString: string): [string, ParsedFunction] {
   result.capturedVariables = capturedVariables;
   result.usesNonLexicalThis = usesNonLexicalThis;
   result.invokedNames = invokedNames;
+  if (args.transformers !== undefined && args.transformers.length > 0) {
+    // we're only going to update the file if transformers are applied
+    result.funcExprWithoutName = file?.getText() ?? result.funcExprWithoutName;
+  }
 
   if (result.capturedVariables.required.has("this")) {
     return [
@@ -139,7 +147,9 @@ export function parseFunction(funcString: string): [string, ParsedFunction] {
   return ["", result];
 }
 
-function parseFunctionCode(funcString: string): [string, ParsedFunctionCode] {
+async function parseFunctionCode(
+  funcString: string
+): Promise<[string, ParsedFunctionCode]> {
   if (funcString.startsWith("[Function:")) {
     return ["the function form was not understood.", <any>undefined];
   }
@@ -364,7 +374,8 @@ function isComputed(v: string, openParenIndex: number) {
 }
 
 function createSourceFile(
-  serializedFunction: ParsedFunctionCode
+  serializedFunction: ParsedFunctionCode,
+  args: SerializeFunctionArgs
 ): [string, ts.SourceFile | null] {
   const funcstr =
     serializedFunction.funcExprWithName ||
@@ -381,7 +392,45 @@ function createSourceFile(
     return [`the function could not be parsed: ${firstDiagnostic}`, null];
   }
 
-  return ["", file!];
+  return ["", cleanSourceFile(file!, args)];
+}
+
+/**
+ * Transforms the {@link closure} prior to serialization so that consumers
+ * of this library can modify the syntax directly.
+ *
+ * For example: [Functionless](https://github.com/functionless/functionless)
+ * removes decorator functions that wrapp function closures.
+ *
+ * ```ts
+ * const foo = functionless.associateAST(() => "hello", new FunctionDecl(..);
+ * ```
+ *
+ * @param closure the closure to serialize - a source file containing a single
+ *                FunctionDeclaration or ExprStmt(FunctionExpression).
+ * @param serializeProps properties to customize serialization behavior.
+ * @returns a source file containing the transformed closure
+ */
+function cleanSourceFile(
+  closure: ts.SourceFile,
+  serializeProps: SerializeFunctionArgs
+): ts.SourceFile {
+  if (
+    serializeProps.transformers === undefined ||
+    serializeProps.transformers.length === 0
+  ) {
+    return closure;
+  }
+
+  const { transformed } = ts.transform(closure, serializeProps.transformers);
+  const printer = ts.createPrinter({ newLine: ts.NewLineKind.LineFeed });
+  return ts.createSourceFile(
+    "",
+    printer.printNode(ts.EmitHint.Unspecified, transformed[0], closure).trim(),
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.JS
+  );
 }
 
 function tryCreateSourceFile(

@@ -1,5 +1,176 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`after hooks closure Analyze property chain #1 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __o = {};
+var __o_b = {c: 2};
+__o.b = __o_b;
+function __f0() {
+  return (function() {
+    let o = __o;
+
+    return function () {
+                console.log(o.b.c);
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Analyze property chain #2 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __o = {};
+var __o_b = {c: 2, d: 3};
+__o.b = __o_b;
+function __f0() {
+  return (function() {
+    let o = __o;
+
+    return function () {
+                console.log(o.b);
+                console.log(o.b.c);
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Analyze property chain #3 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __o = {};
+var __o_b = {c: 2, d: 3};
+__o.b = __o_b;
+function __f0() {
+  return (function() {
+    let o = __o;
+
+    return function () {
+                console.log(o.b);
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Analyze property chain #4 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __o = {a: 1};
+function __f0() {
+  return (function() {
+    let o = __o;
+
+    return function () {
+                console.log(o.a);
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Analyze property chain #5 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __o = {};
+var __o_b = {};
+var __o_b_c = {d: 1};
+__o_b.c = __o_b_c;
+__o.b = __o_b;
+function __f0() {
+  return (function() {
+    let o = __o;
+
+    return function () {
+                console.log(o.b.c.d);
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Analyze property chain #6 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __o = {};
+var __o_b = {};
+var __o_b_c = {d: 1, e: 3};
+__o_b.c = __o_b_c;
+__o.b = __o_b;
+function __f0() {
+  return (function() {
+    let o = __o;
+
+    return function () {
+                console.log(o.b.c.d);
+                console.log(o.b);
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Analyze property chain #7 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __o = {};
+var __o_b = {};
+var __o_b_c = {d: 1, e: 3};
+__o_b.c = __o_b_c;
+__o.b = __o_b;
+function __f0() {
+  return (function() {
+    let o = __o;
+
+    return function () {
+                console.log(o.b.c.d);
+                console.log(o.b.c);
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Analyze property chain #8 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __o = {};
+var __o_b = {};
+var __o_b_c = {d: 1, e: 3};
+__o_b.c = __o_b_c;
+__o.b = __o_b;
+function __f0() {
+  return (function() {
+    let o = __o;
+
+    return function () {
+                console.log(o.b.c.d);
+                console.log(o.b.c);
+                console.log(o.b);
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
 exports[`after hooks closure Analyze property chain #9 1`] = `
 Object {
   "exportName": "handler",
@@ -9,17 +180,2090 @@ var __o = {};
 var __o_b = {};
 Object.defineProperty(__o_b, \\"name\\", { configurable: true, value: \\"b\\" });
 __o.b = __o_b;
-
 function __f0() {
   return (function() {
-    with({ o: __o }) {
+    let o = __o;
 
-return function () { console.log(o.b.name); };
+    return function () {
+                console.log(o.b.name);
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
 
-    }
+exports[`after hooks closure Analyze property chain #10 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __o = {b: __f1};
+function __f1() {
+  return (function() {
+    return function () { };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let o = __o;
+
+    return function () {
+                console.log(o.b.name);
+                console.log(o.b());
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Analyze property chain #11 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __o = {b: __f1};
+function __f1() {
+  return (function() {
+    return function () { };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let o = __o;
+
+    return function () {
+                console.log(o.b());
+                console.log(o.b.name);
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Analyze property chain #12 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __o = {a: 1, b: __f1};
+function __f1() {
+  return (function() {
+    return function () {
+                return this;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let o = __o;
+
+    return function () {
+                console.log(o.b.name);
+                console.log(o.b());
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Analyze property chain #13 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __o = {a: 1, b: __f1};
+function __f1() {
+  return (function() {
+    return function () {
+                return this;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let o = __o;
+
+    return function () {
+                console.log(o.b());
+                console.log(o.b.name);
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Analyze property chain #14 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __o2 = {};
+var __o2_b = {d: 3, c: 2};
+__o2.b = __o2_b;
+function __f0() {
+  return (function() {
+    let o2 = __o2;
+    let o1 = __o2_b;
+
+    return function () {
+                console.log(o2.b.d);
+                console.log(o1);
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Analyze property chain #15 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __o1 = {c: 2, d: 3};
+var __o2 = {};
+__o2.b = __o1;
+function __f0() {
+  return (function() {
+    let o1 = __o1;
+    let o2 = __o2;
+
+    return function () {
+                console.log(o1);
+                console.log(o2.b.d);
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Analyze property chain #16 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __o2 = {};
+var __o2_b = {c: 2, d: 3};
+__o2.b = __o2_b;
+var __o3 = {};
+__o3.b = __o2_b;
+function __f0() {
+  return (function() {
+    let o2 = __o2;
+    let o3 = __o3;
+
+    return function () {
+                console.log(o2.b.c);
+                console.log(o3.b.d);
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Analyze property chain #17 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __o2 = {};
+var __o2_b = {d: 3};
+__o2.b = __o2_b;
+var __o3 = {};
+__o3.b = __o2_b;
+function __f0() {
+  return (function() {
+    let o2 = __o2;
+    let o3 = __o3;
+
+    return function () {
+                console.log(o2.b.d);
+                console.log(o3.b.d);
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Analyze property chain #18 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __o2 = {};
+var __o2_b = {c: 2, d: 3};
+__o2.b = __o2_b;
+var __o3 = {};
+__o3.b = __o2_b;
+function __f0() {
+  return (function() {
+    let o2 = __o2;
+    let o3 = __o3;
+
+    return function () {
+                console.log(o2.b);
+                console.log(o2.b.d);
+                console.log(o3.b.d);
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Analyze property chain #19 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __o2 = {};
+var __o2_b = {c: 2, d: 3};
+__o2.b = __o2_b;
+var __o3 = {};
+__o3.b = __o2_b;
+function __f0() {
+  return (function() {
+    let o2 = __o2;
+    let o3 = __o3;
+
+    return function () {
+                console.log(o2.b.d);
+                console.log(o3.b.d);
+                console.log(o2.b);
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Analyze property chain #20 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __o2 = {};
+var __o2_b = {d: 3, c: 2};
+__o2.b = __o2_b;
+var __o3 = {};
+__o3.b = __o2_b;
+function __f0() {
+  return (function() {
+    let o2 = __o2;
+    let o3 = __o3;
+    let o1 = __o2_b;
+
+    return function () {
+                console.log(o2.b.d);
+                console.log(o3.b.d);
+                console.log(o1);
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Analyze property chain #21 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __o1 = {c: 2, d: 3};
+var __o2 = {};
+__o2.b = __o1;
+var __o3 = {};
+__o3.b = __o1;
+function __f0() {
+  return (function() {
+    let o1 = __o1;
+    let o2 = __o2;
+    let o3 = __o3;
+
+    return function () {
+                console.log(o1);
+                console.log(o2.b.d);
+                console.log(o3.b.d);
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Analyze property chain #22 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __defaultsForThing = {};
+var __defaultsForThing_config = {x: \\"x\\", y: \\"y\\"};
+__defaultsForThing.config = __defaultsForThing_config;
+function __getX() {
+  return (function() {
+    let defaultsForThing = __defaultsForThing;
+    let getX = __getX;
+
+    return function /*getX*/() {
+            return defaultsForThing.config.x;
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __getAll() {
+  return (function() {
+    let getX = __getX;
+    let defaultsForThing = __defaultsForThing;
+    let getAll = __getAll;
+
+    return function /*getAll*/() {
+            const x = getX();
+            return { x, y: defaultsForThing.config.y };
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let getAll = __getAll;
+
+    return function () {
+                console.log(getAll());
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Analyze property chain #23 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __defaultsForThing = {};
+var __defaultsForThing_config = {y: \\"y\\"};
+__defaultsForThing.config = __defaultsForThing_config;
+function __getAll() {
+  return (function() {
+    let defaultsForThing = __defaultsForThing;
+    let getAll = __getAll;
+
+    return function /*getAll*/() {
+            return { y: defaultsForThing.config.y };
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let getAll = __getAll;
+
+    return function () {
+                console.log(getAll());
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Analyze property chain #24 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __config = {x: \\"x\\", y: \\"y\\"};
+function __getX() {
+  return (function() {
+    let config = __config;
+    let getX = __getX;
+
+    return function /*getX*/() {
+            return config.x;
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __getAll() {
+  return (function() {
+    let getX = __getX;
+    let config = __config;
+    let getAll = __getAll;
+
+    return function /*getAll*/() {
+            const x = getX();
+            return { x, y: config.y };
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let getAll = __getAll;
+
+    return function () {
+                console.log(getAll());
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Analyze property chain #25 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __defaultsForThing = {};
+var __defaultsForThing_config = {x: \\"x\\", y: \\"y\\"};
+__defaultsForThing.config = __defaultsForThing_config;
+function __getX() {
+  return (function() {
+    let defaultsForThing = __defaultsForThing;
+    let getX = __getX;
+
+    return function /*getX*/() {
+            return defaultsForThing;
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __getAll() {
+  return (function() {
+    let getX = __getX;
+    let defaultsForThing = __defaultsForThing;
+    let getAll = __getAll;
+
+    return function /*getAll*/() {
+            const x = getX();
+            return { y: defaultsForThing.config.y };
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let getAll = __getAll;
+
+    return function () {
+                console.log(getAll());
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Analyze property chain #26 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __defaultsForThing = {};
+var __defaultsForThing_config = {x: \\"x\\", y: \\"y\\"};
+__defaultsForThing.config = __defaultsForThing_config;
+function __getX() {
+  return (function() {
+    let defaultsForThing = __defaultsForThing;
+    let getX = __getX;
+
+    return function /*getX*/() {
+            return defaultsForThing.config;
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __getAll() {
+  return (function() {
+    let getX = __getX;
+    let defaultsForThing = __defaultsForThing;
+    let getAll = __getAll;
+
+    return function /*getAll*/() {
+            const x = getX();
+            return { y: defaultsForThing.config.y };
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let getAll = __getAll;
+
+    return function () {
+                console.log(getAll());
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Analyze property chain #27 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __defaultsForThing = {};
+var __defaultsForThing_config = {x: \\"x\\", y: \\"y\\"};
+__defaultsForThing.config = __defaultsForThing_config;
+function __getX() {
+  return (function() {
+    let defaultsForThing = __defaultsForThing;
+    let getX = __getX;
+
+    return function /*getX*/() {
+            return defaultsForThing.config.x;
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __getAll() {
+  return (function() {
+    let getX = __getX;
+    let defaultsForThing = __defaultsForThing;
+    let getAll = __getAll;
+
+    return function /*getAll*/() {
+            const x = getX();
+            return { y: defaultsForThing };
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let getAll = __getAll;
+
+    return function () {
+                console.log(getAll());
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Analyze property chain #28 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __defaultsForThing = {};
+var __defaultsForThing_config = {x: \\"x\\", y: \\"y\\"};
+__defaultsForThing.config = __defaultsForThing_config;
+function __getX() {
+  return (function() {
+    let defaultsForThing = __defaultsForThing;
+    let getX = __getX;
+
+    return function /*getX*/() {
+            return defaultsForThing.config.x;
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __getAll() {
+  return (function() {
+    let getX = __getX;
+    let defaultsForThing = __defaultsForThing;
+    let getAll = __getAll;
+
+    return function /*getAll*/() {
+            const x = getX();
+            return { y: defaultsForThing.config };
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let getAll = __getAll;
+
+    return function () {
+                console.log(getAll());
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Arrow closure with this and arguments capture inside function closure 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+function __f0() {
+  return (function() {
+    return function () {
+            () => {
+                console.log(this + arguments);
+            };
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Arrow closure with this capture inside function closure 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+function __f0() {
+  return (function() {
+    return function () {
+            () => {
+                console.log(this);
+            };
+            return 0;
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Async anonymous function closure (js) 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+function __f0(__0) {
+  return (function() {
+    return async function (a) { await a; };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Async anonymous function closure - extra space (js) 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+function __f0(__0) {
+  return (function() {
+    return async function (a) { await a; };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Async arrow function closure (js) 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+function __f0(__0) {
+  return (function() {
+    return async (a) => { await a; };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Async function that does capture this 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+function __f1(__0, __1, __2, __3) {
+  return (function() {
+    return function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator[\\"throw\\"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let __awaiter = __f1;
+
+    return function () {
+            return __awaiter(this, void 0, void 0, function* () {
+                console.log(this);
+                return 0;
+            });
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Async function that does not capture this 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+function __f1(__0, __1, __2, __3) {
+  return (function() {
+    return function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator[\\"throw\\"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let __awaiter = __f1;
+
+    return function () {
+            return __awaiter(this, void 0, void 0, function* () { });
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Async lambda that does capture this 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+function __f1(__0, __1, __2, __3) {
+  return (function() {
+    return function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator[\\"throw\\"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let __awaiter = __f1;
+
+    return () => __awaiter(void 0, void 0, void 0, function* () {
+            console.log(this);
+            return 0;
+        });
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Async lambda that does not capture this 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+function __f1(__0, __1, __2, __3) {
+  return (function() {
+    return function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator[\\"throw\\"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let __awaiter = __f1;
+
+    return () => __awaiter(void 0, void 0, void 0, function* () { });
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Async named function closure (js) 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __foo;
+function __foo(__0) {
+  return (function() {
+    let foo = __foo;
+
+    return async function /*foo*/(a) { await a; };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Capture all if getter and getter uses this. #1 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __o = {};
+__o.a = 1;
+Object.defineProperty(__o, \\"b\\", { configurable: true, enumerable: true, get: __f1 });
+function __f1() {
+  return (function() {
+    return function /*b*/() {
+                return this;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let o = __o;
+
+    return function () {
+                console.log(o.b);
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Capture all if getter and getter uses this. #1.1 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __o = {};
+__o.a = 1;
+Object.defineProperty(__o, \\"b\\", { configurable: true, enumerable: true, get: __f1 });
+function __f1() {
+  return (function() {
+    return function /*b*/() {
+                return this;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let o = __o;
+
+    return function () {
+                console.log(o[\\"b\\"]);
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Capture all if object is used as is. 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __o = {a: 1, b: 2, c: 3};
+function __f0() {
+  return (function() {
+    let o = __o;
+
+    return function () {
+                console.log(o);
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Capture all if object property is invoked, and it uses this in nested arrow function. 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __o = {a: 1, b: 2, c: __f1};
+function __f1() {
+  return (function() {
+    return function /*c*/() {
+                const v = () => this;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let o = __o;
+
+    return function () {
+                console.log(o.c());
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Capture all if object property is invoked, and it uses this. #1 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __o = {a: 1, b: 2, c: __f1};
+function __f1() {
+  return (function() {
+    return function /*c*/() {
+                return this;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let o = __o;
+
+    return function () {
+                console.log(o.c());
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Capture all if object property is invoked, and it uses this. #1.1 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __o = {a: 1, b: 2, c: __f1};
+function __f1() {
+  return (function() {
+    return function /*c*/() {
+                return this;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let o = __o;
+
+    return function () {
+                console.log(o[\\"c\\"]());
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Capture all props from different contexts #1 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f1;
+
+var __o = {a: 1, b: 1, c: 2};
+function __f2() {
+  return (function() {
+    let o = __o;
+    let f2 = __f2;
+
+    return function /*f2*/() {
+            console.log(o);
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f1() {
+  return (function() {
+    let o = __o;
+    let f2 = __f2;
+    let f1 = __f1;
+
+    return function /*f1*/() {
+            console.log(o.a);
+            f2();
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Capture all props from different contexts #1.1 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f1;
+
+var __o = {a: 1, b: 1, c: 2};
+function __f2() {
+  return (function() {
+    let o = __o;
+    let f2 = __f2;
+
+    return function /*f2*/() {
+            console.log(o);
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f1() {
+  return (function() {
+    let o = __o;
+    let f2 = __f2;
+    let f1 = __f1;
+
+    return function /*f1*/() {
+            console.log(o[\\"a\\"]);
+            f2();
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Capture all props from different contexts #2 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f1;
+
+var __o = {a: 1, b: 1, c: 2};
+function __f2() {
+  return (function() {
+    let o = __o;
+    let f2 = __f2;
+
+    return function /*f2*/() {
+            console.log(o.a);
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f1() {
+  return (function() {
+    let o = __o;
+    let f2 = __f2;
+    let f1 = __f1;
+
+    return function /*f1*/() {
+            console.log(o);
+            f2();
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Capture all props from different contexts #2.1 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f1;
+
+var __o = {a: 1, b: 1, c: 2};
+function __f2() {
+  return (function() {
+    let o = __o;
+    let f2 = __f2;
+
+    return function /*f2*/() {
+            console.log(o[\\"a\\"]);
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f1() {
+  return (function() {
+    let o = __o;
+    let f2 = __f2;
+    let f1 = __f1;
+
+    return function /*f1*/() {
+            console.log(o);
+            f2();
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Capture all props if prototype is accessed #2 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __o_proto_proto = {};
+Object.defineProperty(__f1, \\"prototype\\", { value: __o_proto_proto });
+Object.defineProperty(__o_proto_proto, \\"constructor\\", { configurable: true, writable: true, value: __f1 });
+Object.defineProperty(__o_proto_proto, \\"m\\", { configurable: true, writable: true, value: __f2 });
+var __o_proto = Object.create(__o_proto_proto);
+Object.defineProperty(__f3, \\"prototype\\", { value: __o_proto });
+Object.setPrototypeOf(__f3, __f1);
+Object.defineProperty(__o_proto, \\"constructor\\", { configurable: true, writable: true, value: __f3 });
+Object.defineProperty(__o_proto, \\"n\\", { configurable: true, writable: true, value: __f4 });
+var __o = Object.create(__o_proto);
+__o.a = 1;
+__o.b = 2;
+function __f1() {
+  return (function() {
+    return function /*constructor*/() {
+                this.a = 1;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f2() {
+  return (function() {
+    return function /*m*/() {
+                this.n();
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f3() {
+  return (function() {
+    let __super = __f1;
+
+    return function /*constructor*/() {
+    __super.call(this);
+    this.b = 2;
+};
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f4() {
+  return (function() {
+    let __super = __f1;
+
+    return function /*n*/() { };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let o = __o;
+
+    return function () {
+                o.m();
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Capture all props if prototype is accessed #2.1 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __o_proto_proto = {};
+Object.defineProperty(__f1, \\"prototype\\", { value: __o_proto_proto });
+Object.defineProperty(__o_proto_proto, \\"constructor\\", { configurable: true, writable: true, value: __f1 });
+Object.defineProperty(__o_proto_proto, \\"m\\", { configurable: true, writable: true, value: __f2 });
+var __o_proto = Object.create(__o_proto_proto);
+Object.defineProperty(__f3, \\"prototype\\", { value: __o_proto });
+Object.setPrototypeOf(__f3, __f1);
+Object.defineProperty(__o_proto, \\"constructor\\", { configurable: true, writable: true, value: __f3 });
+Object.defineProperty(__o_proto, \\"n\\", { configurable: true, writable: true, value: __f4 });
+var __o = Object.create(__o_proto);
+__o.a = 1;
+__o.b = 2;
+function __f1() {
+  return (function() {
+    return function /*constructor*/() {
+                this.a = 1;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f2() {
+  return (function() {
+    return function /*m*/() {
+                this.n();
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f3() {
+  return (function() {
+    let __super = __f1;
+
+    return function /*constructor*/() {
+    __super.call(this);
+    this.b = 2;
+};
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f4() {
+  return (function() {
+    let __super = __f1;
+
+    return function /*n*/() { };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let o = __o;
+
+    return function () {
+                o[\\"m\\"]();
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Capture all props if prototype is and uses this #1 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __o_proto = {};
+Object.defineProperty(__f1, \\"prototype\\", { value: __o_proto });
+Object.defineProperty(__o_proto, \\"constructor\\", { configurable: true, writable: true, value: __f1 });
+Object.defineProperty(__o_proto, \\"m\\", { configurable: true, writable: true, value: __f2 });
+var __o = Object.create(__o_proto);
+__o.a = 1;
+__o.b = 2;
+function __f1() {
+  return (function() {
+    return function /*constructor*/() {
+                this.a = 1;
+                this.b = 2;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f2() {
+  return (function() {
+    return function /*m*/() {
+                console.log(this);
+                return 0;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let o = __o;
+
+    return function () {
+                o.m();
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Capture all props if prototype is and uses this #1.1 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __o_proto = {};
+Object.defineProperty(__f1, \\"prototype\\", { value: __o_proto });
+Object.defineProperty(__o_proto, \\"constructor\\", { configurable: true, writable: true, value: __f1 });
+Object.defineProperty(__o_proto, \\"m\\", { configurable: true, writable: true, value: __f2 });
+var __o = Object.create(__o_proto);
+__o.a = 1;
+__o.b = 2;
+function __f1() {
+  return (function() {
+    return function /*constructor*/() {
+                this.a = 1;
+                this.b = 2;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f2() {
+  return (function() {
+    return function /*m*/() {
+                console.log(this);
+                return 0;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let o = __o;
+
+    return function () {
+                o[\\"m\\"]();
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Capture built in module by ref 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+function __f0() {
+  return (function() {
+    let os = require(\\"os\\");
+
+    return () => os;
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Capture config created on the inside 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __deploymentOnlyModule = {};
+var __f1_prototype = {};
+Object.defineProperty(__f1_prototype, \\"constructor\\", { configurable: true, writable: true, value: __f1 });
+var __config = {[\\"test:TestingKey1\\"]: \\"TestingValue1\\", [\\"test:TestingKey2\\"]: \\"TestingValue2\\"};
+var __runtimeConfig_1 = {getConfig: __getConfig};
+Object.defineProperty(__f1_prototype, \\"get\\", { configurable: true, writable: true, value: __f2 });
+Object.defineProperty(__f1_prototype, \\"fullKey\\", { configurable: true, writable: true, value: __f3 });
+Object.defineProperty(__f1, \\"prototype\\", { value: __f1_prototype });
+var __m = Object.create(Object.getPrototypeOf(global[\\"ts-jest\\"]));
+Object.defineProperty(__m, \\"__esModule\\", { value: true });
+__m.Config = __f1;
+Object.defineProperty(__deploymentOnlyModule, \\"Config\\", { enumerable: true, get: __f4 });
+function __f1(__0) {
+  return (function() {
+    return function /*constructor*/(name) {
+        if (name.endsWith(\\":config\\")) {
+            name = name.replace(/:config$/, \\"\\");
+        }
+        this.name = name;
+    };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __getConfig(__0) {
+  return (function() {
+    let config = __config;
+    let getConfig = __getConfig;
+
+    return function /*getConfig*/(k) {
+    return config[k];
+};
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f2(__0) {
+  return (function() {
+    let runtimeConfig_1 = __runtimeConfig_1;
+
+    return function /*get*/(key) {
+        const v = (0, runtimeConfig_1.getConfig)(this.fullKey(key));
+        if (v === undefined) {
+            return undefined;
+        }
+        return v;
+    };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f3(__0) {
+  return (function() {
+    return function /*fullKey*/(key) {
+        return this.name + \\":\\" + key;
+    };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f4() {
+  return (function() {
+    let m = __m;
+    let k = \\"Config\\";
+
+    return function () { return m[k]; };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let deploymentOnlyModule = __deploymentOnlyModule;
+
+    return function () {
+                const v = new deploymentOnlyModule.Config(\\"test\\").get(\\"TestingKey2\\");
+                console.log(v);
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Capture config created on the outside 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __testConfig_proto = {};
+Object.defineProperty(__f1, \\"prototype\\", { value: __testConfig_proto });
+Object.defineProperty(__testConfig_proto, \\"constructor\\", { configurable: true, writable: true, value: __f1 });
+var __config = {[\\"test:TestingKey1\\"]: \\"TestingValue1\\", [\\"test:TestingKey2\\"]: \\"TestingValue2\\"};
+var __runtimeConfig_1 = {getConfig: __getConfig};
+Object.defineProperty(__testConfig_proto, \\"get\\", { configurable: true, writable: true, value: __f2 });
+Object.defineProperty(__testConfig_proto, \\"fullKey\\", { configurable: true, writable: true, value: __f3 });
+var __testConfig = Object.create(__testConfig_proto);
+__testConfig.name = \\"test\\";
+function __f1(__0) {
+  return (function() {
+    return function /*constructor*/(name) {
+        if (name.endsWith(\\":config\\")) {
+            name = name.replace(/:config$/, \\"\\");
+        }
+        this.name = name;
+    };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __getConfig(__0) {
+  return (function() {
+    let config = __config;
+    let getConfig = __getConfig;
+
+    return function /*getConfig*/(k) {
+    return config[k];
+};
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f2(__0) {
+  return (function() {
+    let runtimeConfig_1 = __runtimeConfig_1;
+
+    return function /*get*/(key) {
+        const v = (0, runtimeConfig_1.getConfig)(this.fullKey(key));
+        if (v === undefined) {
+            return undefined;
+        }
+        return v;
+    };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f3(__0) {
+  return (function() {
+    return function /*fullKey*/(key) {
+        return this.name + \\":\\" + key;
+    };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let testConfig = __testConfig;
+
+    return function () {
+                const v = testConfig.get(\\"TestingKey1\\");
+                console.log(v);
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Capture default parameters 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+function __f0() {
+  return (function() {
+    let defaultValue = 1;
+
+    return (arg = defaultValue) => { };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Capture factory func #1 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "function __f0() {
+  return (function() {
+    return () => {
+                const serverlessExpress = require(\\"aws-serverless-express\\");
+                const express = require(\\"express\\");
+                const app = express();
+                app.get(\\"/\\", (req, res) => {
+                    res.json({ succeeded: true });
+                });
+                const server = serverlessExpress.createServer(app);
+                return (event, context) => {
+                    serverlessExpress.proxy(server, event, context);
+                };
+            };
   }).apply(undefined, undefined).apply(this, arguments);
 }
-",
+exports.handler = __f0();",
+}
+`;
+
+exports[`after hooks closure Capture factory func #2 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "
+var __outerVal = [];
+var __outerVal_0 = {};
+__outerVal_0.inner = __outerVal;
+__outerVal[0] = __outerVal_0;
+function __foo() {
+  return (function() {
+    let outerVal = __outerVal;
+    let foo = __foo;
+
+    return function /*foo*/() {
+            outerVal.pop();
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __bar() {
+  return (function() {
+    let outerVal = __outerVal;
+    let bar = __bar;
+
+    return function /*bar*/() {
+            outerVal.join();
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let outerVal = __outerVal;
+    let foo = __foo;
+    let bar = __bar;
+
+    return () => {
+                outerVal.push({});
+                foo();
+                return (event, context) => {
+                    bar();
+                };
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}
+exports.handler = __f0();",
+}
+`;
+
+exports[`after hooks closure Capture module through indirect function references 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+function __f1() {
+  return (function() {
+    let os = require(\\"os\\");
+
+    return () => os;
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let handler = __f1;
+
+    return () => handler;
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Capture multi props from different contexts #1 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f1;
+
+var __o = {a: 1, c: 2};
+function __f2() {
+  return (function() {
+    let o = __o;
+    let f2 = __f2;
+
+    return function /*f2*/() {
+            console.log(o.c);
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f1() {
+  return (function() {
+    let o = __o;
+    let f2 = __f2;
+    let f1 = __f1;
+
+    return function /*f1*/() {
+            console.log(o.a);
+            f2();
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Capture multi props from different contexts #1.1 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f1;
+
+var __o = {a: 1, c: 2};
+function __f2() {
+  return (function() {
+    let o = __o;
+    let f2 = __f2;
+
+    return function /*f2*/() {
+            console.log(o[\\"c\\"]);
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f1() {
+  return (function() {
+    let o = __o;
+    let f2 = __f2;
+    let f1 = __f1;
+
+    return function /*f1*/() {
+            console.log(o[\\"a\\"]);
+            f2();
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Capture no props if prototype is used but does not use this #1 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __o = {};
+Object.defineProperty(__o, \\"m\\", { configurable: true, writable: true, value: __f1 });
+function __f1() {
+  return (function() {
+    return function /*m*/() { };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let o = __o;
+
+    return function () {
+                o.m();
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Capture no props if prototype is used but does not use this #1.1 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __o = {};
+Object.defineProperty(__o, \\"m\\", { configurable: true, writable: true, value: __f1 });
+function __f1() {
+  return (function() {
+    return function /*m*/() { };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let o = __o;
+
+    return function () {
+                o[\\"m\\"]();
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Capture non-built-in module 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __typescript_1 = {default: require(\\"typescript/lib/typescript.js\\")};
+function __f0() {
+  return (function() {
+    let typescript_1 = __typescript_1;
+
+    return function () {
+                typescript_1.default.parseCommandLine([\\"\\"]);
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Capture numeric property 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __array = [];
+var __array_0 = {};
+__array_0[\\"80\\"] = \\"foo\\";
+__array_0.arr = __array;
+__array[0] = __array_0;
+function __f0() {
+  return (function() {
+    let array = __array;
+
+    return function () {
+                return array;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Capture object with methods 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __obj = {method1: __f1, method2: __f2};
+function __f1() {
+  return (function() {
+    return function /*method1*/() {
+                return this.method2();
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f2() {
+  return (function() {
+    return () => {
+                return;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let obj = __obj;
+
+    return function () {
+                console.log(obj);
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Capture of exported variable #1 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __exports = {exportedValue: 42};
+function __f0() {
+  return (function() {
+    let exports = __exports;
+
+    return function () {
+                console.log(exports.exportedValue);
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Capture of exported variable #2 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __exports = {exportedValue: 42};
+function __f0() {
+  return (function() {
+    let exports = __exports;
+
+    return function () {
+                console.log(exports.exportedValue);
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Capture of exported variable #3 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __module = {};
+var __module_exports = {exportedValue: 42};
+__module.exports = __module_exports;
+function __f0() {
+  return (function() {
+    let module = __module;
+
+    return function () {
+                console.log(module.exports.exportedValue);
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Capture one if getter and getter does not use this. #1 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __o = {};
+Object.defineProperty(__o, \\"b\\", { configurable: true, enumerable: true, get: __f1 });
+function __f1() {
+  return (function() {
+    return function /*b*/() {
+                return 0;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let o = __o;
+
+    return function () {
+                console.log(o.b);
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Capture one if getter and getter does not use this. #1.1 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __o = {};
+Object.defineProperty(__o, \\"b\\", { configurable: true, enumerable: true, get: __f1 });
+function __f1() {
+  return (function() {
+    return function /*b*/() {
+                return 0;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let o = __o;
+
+    return function () {
+                console.log(o[\\"b\\"]);
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Capture one if object property is captured, uses this, but is not invoked. #1 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __o = {c: __f1};
+function __f1() {
+  return (function() {
+    return function /*c*/() {
+                return this;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let o = __o;
+
+    return function () {
+                console.log(o.c);
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Capture one if object property is captured, uses this, but is not invoked. #1.1 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __o = {c: __f1};
+function __f1() {
+  return (function() {
+    return function /*c*/() {
+                return this;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let o = __o;
+
+    return function () {
+                console.log(o[\\"c\\"]);
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Capture one if object property is invoked, and it does not use this. #1 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __o = {c: __f1};
+function __f1() {
+  return (function() {
+    return function /*c*/() {
+                return 0;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let o = __o;
+
+    return function () {
+                console.log(o.c());
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Capture one if object property is invoked, and it does not use this. #1.1 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __o = {c: __f1};
+function __f1() {
+  return (function() {
+    return function /*c*/() {
+                return 0;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let o = __o;
+
+    return function () {
+                console.log(o[\\"c\\"]());
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Capture one if object property is invoked, but it uses this in nested function. 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __o = {c: __f1};
+function __f1() {
+  return (function() {
+    return function /*c*/() {
+                const v = function () {
+                    return this;
+                };
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let o = __o;
+
+    return function () {
+                console.log(o.c());
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Capture subset if sub object property is invoked. #1 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __o = {};
+var __o_b = {c: __f1};
+__o.b = __o_b;
+function __f1() {
+  return (function() {
+    return function /*c*/() {
+                    return this;
+                };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let o = __o;
+
+    return function () {
+                console.log(o.b.c());
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Capture subset if sub object property is invoked. #1.1 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __o = {};
+var __o_b = {c: __f1};
+__o.b = __o_b;
+function __f1() {
+  return (function() {
+    return function /*c*/() {
+                    return this;
+                };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let o = __o;
+
+    return function () {
+                console.log(o[\\"b\\"][\\"c\\"]());
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Capture subset of properties #1 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __o = {a: 1};
+function __f0() {
+  return (function() {
+    let o = __o;
+
+    return function () {
+                return o.a;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Capture subset of properties #1.1 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __o = {a: 1};
+function __f0() {
+  return (function() {
+    let o = __o;
+
+    return function () {
+                return o[\\"a\\"];
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Capture subset of properties #2 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __o = {b: 2, c: 3};
+function __f0() {
+  return (function() {
+    let o = __o;
+
+    return function () {
+                console.log(o.b + o.c);
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Capture subset of properties #2.1 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __o = {b: 2, c: 3};
+function __f0() {
+  return (function() {
+    let o = __o;
+
+    return function () {
+                console.log(o[\\"b\\"] + o[\\"c\\"]);
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Capture user-defined module by value 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __util = Object.create(Object.getPrototypeOf(global[\\"ts-jest\\"]));
+Object.defineProperty(__util, \\"__esModule\\", { value: true });
+__util.asyncTest = __asyncTest;
+__util.assertAsyncThrows = __assertAsyncThrows;
+function __f1(__0, __1, __2, __3) {
+  return (function() {
+    return function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator[\\"throw\\"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __asyncTest(__0) {
+  return (function() {
+    let __awaiter = __f1;
+    let asyncTest = __asyncTest;
+
+    return function /*asyncTest*/(test) {
+    return (done) => {
+        const go = () => __awaiter(this, void 0, void 0, function* () {
+            let caught;
+            try {
+                yield test();
+            }
+            catch (err) {
+                caught = err;
+            }
+            finally {
+                done(caught);
+            }
+        });
+        void go();
+    };
+};
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __assertAsyncThrows(__0) {
+  return (function() {
+    let __awaiter = __f1;
+    let assertAsyncThrows = __assertAsyncThrows;
+
+    return function /*assertAsyncThrows*/(test) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            yield test();
+        }
+        catch (err) {
+            return err.message;
+        }
+        throw Error(\\"Function was expected to throw, but didn't\\");
+    });
+};
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let util = __util;
+
+    return () => util;
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Captures bigint 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+function __f0() {
+  return (function() {
+    let zeroBigInt = 0n;
+    let smallBigInt = 1n;
+    let negativeBigInt = -1n;
+    let largeBigInt = 11111111111111111111111111111111111111111n;
+    let negativeLargeBigInt = -11111111111111111111111111111111111111111n;
+
+    return function () {
+          return zeroBigInt + smallBigInt + negativeBigInt + largeBigInt + negativeBigInt + negativeLargeBigInt;
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
 }
 `;
 
@@ -31,49 +2275,29 @@ Object {
 __f1.S = __f2;
 __f1.SX = __f3;
 __f1.x = 3;
-
 function __f1() {
   return (function() {
-    with({  }) {
-
-return function /*constructor*/() { };
-
-    }
+    return function /*constructor*/() { };
   }).apply(undefined, undefined).apply(this, arguments);
-}
-
-function __f2() {
+}function __f2() {
   return (function() {
-    with({  }) {
-
-return () => \\"x\\";
-
-    }
+    return () => \\"x\\";
   }).apply(undefined, undefined).apply(this, arguments);
-}
-
-function __f3() {
+}function __f3() {
   return (function() {
-    with({ ClassWithMoreStatic: __f1 }) {
+    let ClassWithMoreStatic = __f1;
 
-return () => new ClassWithMoreStatic();
-
-    }
+    return () => new ClassWithMoreStatic();
   }).apply(undefined, undefined).apply(this, arguments);
-}
-
-function __f0() {
+}function __f0() {
   return (function() {
-    with({ ClassWithMoreStatic: __f1 }) {
+    let ClassWithMoreStatic = __f1;
 
-return () => {
+    return () => {
             return new ClassWithMoreStatic();
         };
-
-    }
   }).apply(undefined, undefined).apply(this, arguments);
-}
-",
+}",
 }
 `;
 
@@ -85,51 +2309,31 @@ Object {
 __f1.S = __f2;
 __f1.SX = __f3;
 __f1.x = 3;
-
 function __f1() {
   return (function() {
-    with({  }) {
-
-return function /*constructor*/() { };
-
-    }
+    return function /*constructor*/() { };
   }).apply(undefined, undefined).apply(this, arguments);
-}
-
-function __f2() {
+}function __f2() {
   return (function() {
-    with({  }) {
-
-return () => \\"x\\";
-
-    }
+    return () => \\"x\\";
   }).apply(undefined, undefined).apply(this, arguments);
-}
-
-function __f3() {
+}function __f3() {
   return (function() {
-    with({ ClassWithMoreStatic: __f1 }) {
+    let ClassWithMoreStatic = __f1;
 
-return () => new ClassWithMoreStatic();
-
-    }
+    return () => new ClassWithMoreStatic();
   }).apply(undefined, undefined).apply(this, arguments);
-}
-
-function __f0() {
+}function __f0() {
   return (function() {
-    with({ ClassWithMoreStatic: __f1 }) {
+    let ClassWithMoreStatic = __f1;
 
-return () => {
+    return () => {
             ClassWithMoreStatic.S();
             ClassWithMoreStatic.SX();
             console.log(ClassWithMoreStatic.x);
         };
-
-    }
   }).apply(undefined, undefined).apply(this, arguments);
-}
-",
+}",
 }
 `;
 
@@ -141,19 +2345,15 @@ Object {
 var __c = {};
 var __c_x = {S: \\"hello\\", T: \\"hello2\\"};
 __c.x = __c_x;
-
 function __f0() {
   return (function() {
-    with({ c: __c }) {
+    let c = __c;
 
-return () => {
+    return () => {
             return c.x.S + c.x.T;
         };
-
-    }
   }).apply(undefined, undefined).apply(this, arguments);
-}
-",
+}",
 }
 `;
 
@@ -164,30 +2364,20 @@ Object {
 
 __f1.S = \\"hello\\";
 __f1.T = \\"hello2\\";
-
 function __f1() {
   return (function() {
-    with({  }) {
-
-return function /*constructor*/() { };
-
-    }
+    return function /*constructor*/() { };
   }).apply(undefined, undefined).apply(this, arguments);
-}
-
-function __f0() {
+}function __f0() {
   return (function() {
-    with({ ClassWithStatic: __f1 }) {
+    let ClassWithStatic = __f1;
 
-return () => {
+    return () => {
             const doSomething = (c) => { };
             return doSomething(ClassWithStatic);
         };
-
-    }
   }).apply(undefined, undefined).apply(this, arguments);
-}
-",
+}",
 }
 `;
 
@@ -197,19 +2387,15 @@ Object {
   "text": "exports.handler = __f0;
 
 var __ClassWithStatic = {S: \\"hello\\"};
-
 function __f0() {
   return (function() {
-    with({ ClassWithStatic: __ClassWithStatic }) {
+    let ClassWithStatic = __ClassWithStatic;
 
-return () => {
+    return () => {
             return ClassWithStatic.S;
         };
-
-    }
   }).apply(undefined, undefined).apply(this, arguments);
-}
-",
+}",
 }
 `;
 
@@ -220,31 +2406,21 @@ Object {
 
 __f1.S = \\"hello\\";
 __f1.T = \\"hello2\\";
-
 function __f1() {
   return (function() {
-    with({  }) {
-
-return function /*constructor*/() { };
-
-    }
+    return function /*constructor*/() { };
   }).apply(undefined, undefined).apply(this, arguments);
-}
-
-function __f0() {
+}function __f0() {
   return (function() {
-    with({ ClassWithStatic: __f1 }) {
+    let ClassWithStatic = __f1;
 
-return () => {
+    return () => {
             const s = ClassWithStatic.S;
             const a = new ClassWithStatic();
             return s;
         };
-
-    }
   }).apply(undefined, undefined).apply(this, arguments);
-}
-",
+}",
 }
 `;
 
@@ -255,30 +2431,20 @@ Object {
 
 __f1.S = \\"hello\\";
 __f1.T = \\"hello2\\";
-
 function __f1() {
   return (function() {
-    with({  }) {
-
-return function /*constructor*/() { };
-
-    }
+    return function /*constructor*/() { };
   }).apply(undefined, undefined).apply(this, arguments);
-}
-
-function __f0() {
+}function __f0() {
   return (function() {
-    with({ ClassWithStatic: __f1 }) {
+    let ClassWithStatic = __f1;
 
-return () => {
+    return () => {
             console.log(ClassWithStatic);
             return ClassWithStatic.S;
         };
-
-    }
   }).apply(undefined, undefined).apply(this, arguments);
-}
-",
+}",
 }
 `;
 
@@ -289,29 +2455,643 @@ Object {
 
 __f1.S = \\"hello\\";
 __f1.T = \\"hello2\\";
-
 function __f1() {
   return (function() {
-    with({  }) {
-
-return function /*constructor*/() { };
-
-    }
+    return function /*constructor*/() { };
   }).apply(undefined, undefined).apply(this, arguments);
-}
-
-function __f0() {
+}function __f0() {
   return (function() {
-    with({ ClassWithStatic: __f1 }) {
+    let ClassWithStatic = __f1;
 
-return () => {
+    return () => {
             return new ClassWithStatic();
         };
-
-    }
   }).apply(undefined, undefined).apply(this, arguments);
+}",
 }
-",
+`;
+
+exports[`after hooks closure Cloud table function 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __testScanReturnsAllValues;
+
+var __table1 = {insert: __f1, primaryKey: 1};
+function __f0(__0, __1, __2, __3) {
+  return (function() {
+    return function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator[\\"throw\\"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f1() {
+  return (function() {
+    return () => { };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __testScanReturnsAllValues() {
+  return (function() {
+    let __awaiter = __f0;
+    let table1 = __table1;
+    let testScanReturnsAllValues = __testScanReturnsAllValues;
+
+    return function /*testScanReturnsAllValues*/() {
+            return __awaiter(this, void 0, void 0, function* () {
+                yield table1.insert({
+                    [table1.primaryKey]: \\"val1\\",
+                    value1: 1,
+                    value2: \\"1\\",
+                });
+                yield table1.insert({
+                    [table1.primaryKey]: \\"val2\\",
+                    value1: 2,
+                    value2: \\"2\\",
+                });
+                const values = [];
+                // @ts-ignore
+                const value1 = values.find((v) => v[table1.primaryKey] === \\"val1\\");
+                // @ts-ignore
+                const value2 = values.find((v) => v[table1.primaryKey] === \\"val2\\");
+            });
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Complex capturing cases #1 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+function __f0() {
+  return (function() {
+    let cap1 = 100;
+
+    return () => {
+                // cap1 is captured here.
+                // nocap1 introduces a new variable that shadows the outer one.
+                let [nocap1 = cap1] = [];
+                console.log(nocap1);
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Complex capturing cases #2 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+function __f0() {
+  return (function() {
+    let cap1 = 100;
+
+    return () => {
+                // cap1 is captured here.
+                // nocap1 introduces a new variable that shadows the outer one.
+                let { nocap1 = cap1 } = {};
+                console.log(nocap1);
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Complex capturing cases #3 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+function __f0() {
+  return (function() {
+    let cap1 = 100;
+
+    return () => {
+                // cap1 is captured here.
+                // nocap1 introduces a new variable that shadows the outer one.
+                let { x: nocap1 = cap1 } = {};
+                console.log(nocap1);
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Complex property descriptor #1 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __v = {};
+Object.defineProperty(__v, \\"key\\", { configurable: true, value: 1 });
+function __f0() {
+  return (function() {
+    let v = __v;
+
+    return () => v;
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Complex property descriptor #2 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __v = {};
+Object.defineProperty(__v, \\"key\\", { enumerable: true, writable: true, value: 1 });
+function __f0() {
+  return (function() {
+    let v = __v;
+
+    return () => v;
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Cyclic object #1 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __array = [];
+__array[0] = 1;
+__array[1] = __array;
+function __f0() {
+  return (function() {
+    let array = __array;
+
+    return () => array;
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Cyclic object #2 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __obj = {};
+__obj.a = 1;
+__obj.b = __obj;
+function __f0() {
+  return (function() {
+    let obj = __obj;
+
+    return () => obj;
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Cyclic object #3 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __obj = {};
+var __obj_a = [];
+__obj_a[0] = __obj;
+__obj.a = __obj_a;
+__obj.b = __obj_a;
+function __f0() {
+  return (function() {
+    let obj = __obj;
+
+    return () => obj;
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Cyclic object #4 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __obj2 = [];
+var __obj2_0 = {};
+var __obj2_0_a = [];
+__obj2_0_a[0] = __obj2_0;
+__obj2_0.a = __obj2_0_a;
+__obj2_0.b = __obj2_0_a;
+__obj2[0] = __obj2_0;
+__obj2[1] = __obj2_0;
+function __f0() {
+  return (function() {
+    let obj2 = __obj2;
+
+    return () => obj2;
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Declared variable in typeof 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+function __f0() {
+  return (function() {
+    let a = 0;
+
+    return function () {
+                const x = typeof a;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Deconstructing arrow function 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+function __f0(__0) {
+  return (function() {
+    return ({ whatever }) => whatever;
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Deconstructing async arrow function 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+function __f1(__0, __1, __2, __3) {
+  return (function() {
+    return function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator[\\"throw\\"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0(__0) {
+  return (function() {
+    let __awaiter = __f1;
+
+    return ({ whatever }) => __awaiter(void 0, void 0, void 0, function* () { return whatever; });
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Deconstructing async function 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f;
+function __f0(__0, __1, __2, __3) {
+  return (function() {
+    return function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator[\\"throw\\"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f(__0) {
+  return (function() {
+    let __awaiter = __f0;
+    let f = __f;
+
+    return function /*f*/({ whatever }) {
+            return __awaiter(this, void 0, void 0, function* () {
+                return whatever;
+            });
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Deconstructing function 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f;
+function __f(__0) {
+  return (function() {
+    let f = __f;
+
+    return function /*f*/({ whatever }) {
+            return whatever;
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Do not capture #1 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f1;
+
+var __o = {a: 1, b: undefined, c: 2};
+function __f1() {
+  return (function() {
+    let o = __o;
+    let f1 = __f1;
+
+    return function /*f1*/() {
+            console.log(o);
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Do not capture #2 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f1;
+
+var __o = {a: 1, b: __f0};
+function __f0() {
+  return (function() {
+    let message = \\"Function 'b' cannot be called at runtime. It can only be used at deployment time.\\\\n\\\\nFunction code:\\\\n  () => console.log(\\\\\\"the actual function\\\\\\")\\\\n\\";
+
+    return () => {
+                throw new Error(message);
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f1() {
+  return (function() {
+    let o = __o;
+    let f1 = __f1;
+
+    return function /*f1*/() {
+            console.log(o);
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Do not capture non-existent prop #1 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f1;
+
+var __o = {};
+function __f1() {
+  return (function() {
+    let o = __o;
+    let f1 = __f1;
+
+    return function /*f1*/() {
+            // @ts-ignore
+            console.log(o.c);
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Do not capture non-existent prop #1.1 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f1;
+
+var __o = {};
+function __f1() {
+  return (function() {
+    let o = __o;
+    let f1 = __f1;
+
+    return function /*f1*/() {
+            // @ts-ignore
+            console.log(o[\\"c\\"]);
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Doesn't serialize global captures 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+function __f0() {
+  return (function() {
+    return () => {
+            console.log(\\"Just a global object reference\\");
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Doesn't serialize non-free variables (but retains frees) 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+function __f0(__0, __1) {
+  return (function() {
+    let cap1 = 100;
+    let cap2 = 200;
+    let cap3 = 300;
+    let cap4 = 400;
+    let cap5 = 500;
+    let cap6 = 600;
+    let cap7 = 700;
+    let cap8 = 800;
+
+    return (nocap1, nocap2) => {
+  let zz = nocap1 + nocap2; // not a capture: args
+  let yy = nocap3; // not a capture: var later on
+  if (zz) {
+      zz += cap1; // true capture
+      let cap1 = 9; // because let is properly scoped
+      zz += nocap4; // not a capture
+      var nocap4 = 7; // because var is function scoped
+      zz += cap2; // true capture
+      const cap2 = 33;
+      var nocap3 = 8; // block the above capture
+  }
+  let f1 = (nocap5) => {
+      yy += nocap5; // not a capture: args
+      cap3++; // capture
+  };
+  let f2 = (function (nocap6) {
+      zz += nocap6; // not a capture: args
+      if (cap4) { // capture
+          yy = 0;
+      }
+  });
+  let www = nocap7(); // not a capture; it is defined below
+  if (true) {
+      function nocap7() {
+      }
+  }
+  let [{t: [nocap8]},nocap9 = \\"hello\\",...nocap10] = [{t: [true]},null,undefined,1,2];
+  let vvv = [nocap8, nocap9, nocap10]; // not a capture; declarations from destructuring
+  let aaa = { // captures in property and method declarations
+      [cap5]: cap6,
+      [cap7]() {
+          cap8
+      }
+  }
+};
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Don't capture built-ins 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+function __f0() {
+  return (function() {
+    return () => {
+            let x = eval(\\"undefined + null + NaN + Infinity + __filename\\");
+            require(\\"os\\");
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Don't capture catch variables 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+function __f0() {
+  return (function() {
+    return () => {
+            try {
+            }
+            catch (err) {
+                console.log(err);
+            }
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Don't serialize \`this\` in function expressions 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+__f1.value = \\"value\\";
+function __f1() {
+  return (function() {
+    return function () {
+        return this.value;
+    };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let func = __f1;
+
+    return () => func.call(func);
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Empty arrow closure 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+function __f0() {
+  return (function() {
+    return () => { };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Empty arrow closure w/ args 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+function __f0(__0, __1, __2) {
+  return (function() {
+    return (x, y, z) => { };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Empty function closure 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+function __f0() {
+  return (function() {
+    return function () { };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Empty function closure w/ args 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+function __f0(__0, __1, __2) {
+  return (function() {
+    return function (x, y, z) { };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Empty named function 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f;
+function __f() {
+  return (function() {
+    let f = __f;
+
+    return function /*f*/() { };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Function closure with this and arguments capture 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+function __f0() {
+  return (function() {
+    return function () {
+            console.log(this + arguments);
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Function closure with this capture 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+function __f0() {
+  return (function() {
+    return function () {
+            return 0;
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
 }
 `;
 
@@ -321,31 +3101,23 @@ Object {
   "text": "exports.handler = __f0;
 
 __F.x = \\"hello\\";
-
 function __F() {
   return (function() {
-    with({ F: __F }) {
+    let F = __F;
 
-return function /*F*/() {
+    return function /*F*/() {
         return \\"wee\\";
     };
-
-    }
   }).apply(undefined, undefined).apply(this, arguments);
-}
-
-function __f0() {
+}function __f0() {
   return (function() {
-    with({ F: __F }) {
+    let F = __F;
 
-return () => {
+    return () => {
             console.log(F());
         };
-
-    }
   }).apply(undefined, undefined).apply(this, arguments);
-}
-",
+}",
 }
 `;
 
@@ -355,18 +3127,1607 @@ Object {
   "text": "exports.handler = __f0;
 
 var __F = {x: \\"hello\\"};
-
 function __f0() {
   return (function() {
-    with({ F: __F }) {
+    let F = __F;
 
-return () => {
+    return () => {
             console.log(F.x);
         };
-
-    }
   }).apply(undefined, undefined).apply(this, arguments);
+}",
 }
-",
+`;
+
+exports[`after hooks closure Handle edge-case literals 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+function __f0() {
+  return (function() {
+    let a = -0;
+    let b = -0;
+    let c = Infinity;
+    let d = -Infinity;
+    let e = NaN;
+    let f = 9007199254740991;
+    let g = 1.7976931348623157e+308;
+    let h = -9007199254740991;
+    let i = 5e-324;
+
+    return () => {
+                const x = [a, b, c, d, e, f, g, h, i];
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Invocation of async function that does capture this #1 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __task = {run: __f2};
+function __f1(__0, __1, __2, __3) {
+  return (function() {
+    return function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator[\\"throw\\"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f2() {
+  return (function() {
+    let __awaiter = __f1;
+
+    return function () {
+                    return __awaiter(this, void 0, void 0, function* () {
+                        return 0;
+                    });
+                };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let __awaiter = __f1;
+    let task = __task;
+
+    return function () {
+                return __awaiter(this, void 0, void 0, function* () {
+                    return yield task.run();
+                });
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Invocation of async function that does not capture this #1 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __task = {run: __f2};
+function __f1(__0, __1, __2, __3) {
+  return (function() {
+    return function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator[\\"throw\\"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f2() {
+  return (function() {
+    let __awaiter = __f1;
+
+    return function () {
+                    return __awaiter(this, void 0, void 0, function* () {
+                        return 0;
+                    });
+                };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let __awaiter = __f1;
+    let task = __task;
+
+    return function () {
+                return __awaiter(this, void 0, void 0, function* () {
+                    return yield task.run();
+                });
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Invocation of async lambda that does not capture this #1 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __task = {run: __f2};
+function __f1(__0, __1, __2, __3) {
+  return (function() {
+    return function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator[\\"throw\\"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f2() {
+  return (function() {
+    let __awaiter = __f1;
+
+    return () => __awaiter(this, void 0, void 0, function* () { });
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let __awaiter = __f1;
+    let task = __task;
+
+    return function () {
+                return __awaiter(this, void 0, void 0, function* () {
+                    yield task.run();
+                });
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Merge simple functions 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f3;
+function __f0() {
+  return (function() {
+    return () => console.log(1);
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f3() {
+  return (function() {
+    let lambda1 = __f0;
+    let lambda2 = __f0;
+    let f3 = __f3;
+
+    return function /*f3*/() {
+            return lambda1(), lambda2();
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Named function with self-reference 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f;
+function __f() {
+  return (function() {
+    let f = __f;
+
+    return function /*f*/() {
+            if (false) {
+                f();
+            }
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Object captured across multiple functions 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __obj = {a: 1};
+function __f1() {
+  return (function() {
+    let obj = __obj;
+    let f1 = __f1;
+
+    return function /*f1*/() {
+            return obj;
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f2() {
+  return (function() {
+    let obj = __obj;
+    let f2 = __f2;
+
+    return function /*f2*/() {
+            return obj;
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let f1 = __f1;
+    let obj = __obj;
+    let f2 = __f2;
+
+    return () => {
+                f1();
+                obj.a = 2;
+                return f2();
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Regex #1 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __regex = new RegExp(\\"(abc)[\\\\\\\\(123-456]\\\\\\\\\\\\\\\\a\\\\\\\\b\\\\\\\\z\\", \\"gi\\");
+function __f0() {
+  return (function() {
+    let regex = __regex;
+
+    return function () {
+                console.log(regex);
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Regex #2 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __regex = new RegExp(\\"(abc)\\", \\"g\\");
+function __foo() {
+  return (function() {
+    let regex = __regex;
+    let foo = __foo;
+
+    return function /*foo*/() {
+            console.log(regex);
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let regex = __regex;
+    let foo = __foo;
+
+    return function () {
+                console.log(regex);
+                foo();
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Regex #3 (no flags) 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __regex = new RegExp(\\"(abc)\\", \\"\\");
+function __foo() {
+  return (function() {
+    let regex = __regex;
+    let foo = __foo;
+
+    return function /*foo*/() {
+            console.log(regex);
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let regex = __regex;
+    let foo = __foo;
+
+    return function () {
+                console.log(regex);
+                foo();
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Remove specific syntax with a TypeScript transformer 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __foo;
+function __foo() {
+  return (function() {
+    let foo = __foo;
+
+    return (function foo() {
+    (text) => \`hello \${text}\`;
+    const a = (text) => \`hello \${text}\`;
+    const b = [(text) => \`hello \${text}\`];
+    const c = {
+        prop: (text) => \`hello \${text}\`,
+    };
+    function bar(...args) {
+        const a = (text) => \`hello \${text}\`;
+        const b = [(text) => \`hello \${text}\`];
+        const c = {
+            prop: (text) => \`hello \${text}\`,
+        };
+        return [a(\\"a\\"), b[0](\\"b\\"), c.prop(\\"c\\"), ...args];
+    }
+    return bar(a(\\"a\\"), b[0](\\"b\\"), c.prop(\\"c\\"));
+});;
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Required packages #1 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+function __foo() {
+  return (function() {
+    let foo = __foo;
+
+    return function /*foo*/() {
+            require(\\"./util\\");
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let foo = __foo;
+
+    return function () {
+                require(\\"typescript\\");
+                foo();
+                if (true) {
+                    require(\\"os\\");
+                }
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Respects package.json exports 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __reproHandler;
+
+var __lib_1 = {};
+var __lib_1_z = {object: __f2, string: __f3};
+__lib_1.z = __lib_1_z;
+function __f0(__0, __1, __2, __3) {
+  return (function() {
+    return function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator[\\"throw\\"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f2(__0) {
+  return (function() {
+    return function (o) { return ({
+    parse: function (a) { return a; }
+}); };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f3() {
+  return (function() {
+    return function () { return ({
+    parse: function (a) { return a; }
+}); };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f1() {
+  return (function() {
+    let lib_1 = __lib_1;
+
+    return () => lib_1.z.object({
+            message: lib_1.z.string(),
+        });
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __reproHandler(__0) {
+  return (function() {
+    let __awaiter = __f0;
+    let getSchemaValidator = __f1;
+    let reproHandler = __reproHandler;
+
+    return function /*reproHandler*/(input) {
+            return __awaiter(this, void 0, void 0, function* () {
+                const payload = getSchemaValidator().parse(input);
+                return payload.message;
+            });
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Serialize arrow function calling static class methods (es5 class style) 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+__D.m = __f1;
+__D.n = __f2;
+function __D() {
+  return (function() {
+    let D = __D;
+
+    return function /*D*/() { };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f1() {
+  return (function() {
+    return function () {
+                return this.n();
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f2() {
+  return (function() {
+    return function () {
+                return 0;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let D = __D;
+
+    return () => D.m();
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Serialize class 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __C = {};
+var __array = [];
+var __array_0 = {};
+__array_0.o = 1;
+__array_0.b = __array;
+__array[0] = __array_0;
+Object.defineProperty(__C, \\"s\\", { configurable: true, writable: true, value: __f1 });
+function __f1() {
+  return (function() {
+    let array = __array;
+
+    return function /*s*/() {
+                return array;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let C = __C;
+
+    return () => C.s();
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Serialize class with constructor and field 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __f1_prototype = {};
+Object.defineProperty(__f1_prototype, \\"constructor\\", { configurable: true, writable: true, value: __f1 });
+Object.defineProperty(__f1_prototype, \\"m\\", { configurable: true, writable: true, value: __f2 });
+Object.defineProperty(__f1_prototype, \\"n\\", { configurable: true, writable: true, value: __f3 });
+Object.defineProperty(__f1, \\"prototype\\", { value: __f1_prototype });
+Object.defineProperty(__f1, \\"s\\", { configurable: true, writable: true, value: __f4 });
+function __f1() {
+  return (function() {
+    return function /*constructor*/() {
+                this.x = 1;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f2() {
+  return (function() {
+    return function /*m*/() {
+                return this.n();
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f3() {
+  return (function() {
+    return function /*n*/() {
+                return this.x;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f4(__0) {
+  return (function() {
+    return function /*s*/(c) {
+                return c.n();
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let C = __f1;
+
+    return () => C.s(new C());
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Serialize constructed class 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __f1_prototype = {};
+Object.defineProperty(__f1_prototype, \\"constructor\\", { configurable: true, writable: true, value: __f1 });
+Object.defineProperty(__f1_prototype, \\"m\\", { configurable: true, writable: true, value: __f2 });
+Object.defineProperty(__f1_prototype, \\"n\\", { configurable: true, writable: true, value: __f3 });
+Object.defineProperty(__f1, \\"prototype\\", { value: __f1_prototype });
+Object.defineProperty(__f1, \\"s\\", { configurable: true, writable: true, value: __f4 });
+function __f1() {
+  return (function() {
+    return function /*constructor*/() {
+                this.x = 1;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f2() {
+  return (function() {
+    return function /*m*/() {
+                return this.n();
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f3() {
+  return (function() {
+    return function /*n*/() {
+                return this.x;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f4() {
+  return (function() {
+    return function /*s*/() {
+                return 0;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let C = __f1;
+
+    return () => new C();
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Serialize es5-style class 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __C_prototype = {};
+Object.defineProperty(__C_prototype, \\"constructor\\", { configurable: true, writable: true, value: __C });
+var __outer = {};
+__outer.o = 1;
+var __outer_b = [];
+__outer_b[0] = __outer;
+__outer.b = __outer_b;
+__C_prototype.m = __f1;
+__C_prototype.n = __f2;
+Object.defineProperty(__C, \\"prototype\\", { writable: true, value: __C_prototype });
+__C.m = __f3;
+function __C() {
+  return (function() {
+    let C = __C;
+
+    return function /*C*/() { };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f1() {
+  return (function() {
+    let outer = __outer;
+
+    return function () {
+                return this.n() + outer;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f2() {
+  return (function() {
+    let array = __outer_b;
+
+    return function () {
+                return array;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f3() {
+  return (function() {
+    return function () {
+                return this.n();
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let C = __C;
+
+    return () => new C().n();
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Serialize instance class methods 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __c_proto = {};
+Object.defineProperty(__f1, \\"prototype\\", { value: __c_proto });
+Object.defineProperty(__c_proto, \\"constructor\\", { configurable: true, writable: true, value: __f1 });
+Object.defineProperty(__c_proto, \\"m\\", { configurable: true, writable: true, value: __f2 });
+Object.defineProperty(__c_proto, \\"n\\", { configurable: true, writable: true, value: __f3 });
+var __c = Object.create(__c_proto);
+function __f1() {
+  return (function() {
+    return function /*constructor*/() { };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f2() {
+  return (function() {
+    return function /*m*/() {
+                return this.n();
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f3() {
+  return (function() {
+    return function /*n*/() {
+                return 0;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let c = __c;
+
+    return () => c.m();
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Serialize instance class methods, forget to bind 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+function __f0() {
+  return (function() {
+    return function /*m*/() {
+                return this.n();
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Serialize method with reserved name 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+function __f0() {
+  return (function() {
+    return function /*delete*/() {
+                return 0;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Serialize mutable objects by value at the time of capture (post-mutation) 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __mutable = {timesTheyAreAChangin: true};
+function __f0() {
+  return (function() {
+    let mutable = __mutable;
+
+    return function () {
+                        return mutable;
+                    };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Serialize mutable objects by value at the time of capture (pre-mutation) 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __mutable = {};
+function __f0() {
+  return (function() {
+    let mutable = __mutable;
+
+    return function () {
+                return mutable;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Serialize static class methods 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __C = {};
+Object.defineProperty(__C, \\"n\\", { configurable: true, writable: true, value: __f1 });
+function __f1() {
+  return (function() {
+    return function /*n*/() {
+                return 0;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let C = __C;
+
+    return function /*m*/() {
+                return C.n();
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Serializes basic captures 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __ycap = [true, -1, \\"yup\\"];
+var __zcap = {};
+__zcap.a = \\"a\\";
+__zcap.b = false;
+var __zcap_c = [0];
+__zcap.c = __zcap_c;
+function __f0() {
+  return (function() {
+    let wcap = \\"foo\\";
+    let xcap = 97;
+    let ycap = __ycap;
+    let zcap = __zcap;
+
+    return () => {
+                return wcap + \`\${xcap}\` + ycap.length + zcap.a + zcap.b + zcap.c;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Serializes recursive function captures 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __xcap = {};
+__xcap.fff = __f1;
+__xcap.ggg = __f2;
+var __xcap_zzz = {};
+var __xcap_zzz_a = [__f3];
+__xcap_zzz.a = __xcap_zzz_a;
+__xcap.zzz = __xcap_zzz;
+function __f1() {
+  return (function() {
+    let fff = \\"fff!\\";
+
+    return function () {
+                console.log(fff);
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f2() {
+  return (function() {
+    let ggg = \\"ggg!\\";
+
+    return () => {
+                console.log(ggg);
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f3(__0, __1) {
+  return (function() {
+    return (a1, a2) => {
+                        console.log(a1 + a2);
+                    };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let xcap = __xcap;
+
+    return () => {
+            xcap.fff();
+            xcap.ggg();
+            xcap.zzz.a[0](\\"x\\", \\"y\\");
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Share __awaiter functions 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f3;
+function __f0(__0, __1, __2, __3) {
+  return (function() {
+    return function (thisArg, _arguments, P, generator) {
+            return new (P || (P = Promise))(function (resolve, reject) {
+                function fulfilled(value) {
+                    try {
+                        step(generator.next(value));
+                    }
+                    catch (e) {
+                        reject(e);
+                    }
+                }
+                function rejected(value) {
+                    try {
+                        step(generator[\\"throw\\"](value));
+                    }
+                    catch (e) {
+                        reject(e);
+                    }
+                }
+                function step(result) {
+                    result.done
+                        ? resolve(result.value)
+                        : new P(function (resolve1) {
+                            resolve1(result.value);
+                        }).then(fulfilled, rejected);
+                }
+                step((generator = generator.apply(thisArg, _arguments || [])).next());
+            });
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f3() {
+  return (function() {
+    let awaiter1 = __f0;
+    let awaiter2 = __f0;
+    let f3 = __f3;
+
+    return function /*f3*/() {
+            const v1 = awaiter1, v2 = awaiter2;
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Test Symbol.iterator 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __f1_prototype = {};
+Object.defineProperty(__f1_prototype, \\"constructor\\", { configurable: true, writable: true, value: __f1 });
+var __f2_prototype = Object.create(Object.getPrototypeOf((function*(){}).prototype));
+Object.defineProperty(__f2, \\"prototype\\", { writable: true, value: __f2_prototype });
+Object.setPrototypeOf(__f2, Object.getPrototypeOf(function*(){}));
+Object.defineProperty(__f1_prototype, Symbol.iterator, { configurable: true, writable: true, value: __f2 });
+Object.defineProperty(__f1, \\"prototype\\", { value: __f1_prototype });
+function __f1() {
+  return (function() {
+    return function /*constructor*/() { };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f2() {
+  return (function() {
+    return function* () {
+                yield 1;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let C = __f1;
+
+    return () => {
+                const c = new C();
+                return Array.from(c);
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Test anonymous generator func 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __f1_prototype = Object.create(Object.getPrototypeOf((function*(){}).prototype));
+Object.defineProperty(__f1, \\"prototype\\", { writable: true, value: __f1_prototype });
+Object.setPrototypeOf(__f1, Object.getPrototypeOf(function*(){}));
+function __f1() {
+  return (function() {
+    return function* () {
+            yield 1;
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let gf = __f1;
+
+    return () => {
+                let accum = 0;
+                for (const i of gf()) {
+                    accum += i;
+                }
+                return accum;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Test array #1 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __v = [];
+__v[0] = 1;
+__v[2] = 3;
+function __f0() {
+  return (function() {
+    let v = __v;
+
+    return () => v;
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Test array #2 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __v = [];
+__v[0] = 1;
+__v[2] = 3;
+__v.foo = \\"\\";
+function __f0() {
+  return (function() {
+    let v = __v;
+
+    return () => v;
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Test class extension 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __f2_prototype = {};
+Object.defineProperty(__f2_prototype, \\"constructor\\", { configurable: true, writable: true, value: __f2 });
+Object.defineProperty(__f2_prototype, \\"dMethod\\", { configurable: true, writable: true, value: __f3 });
+Object.defineProperty(__f2_prototype, \\"dVirtual\\", { configurable: true, writable: true, value: __f4 });
+Object.defineProperty(__f2, \\"prototype\\", { value: __f2_prototype });
+var __f1_prototype = Object.create(__f2_prototype);
+Object.defineProperty(__f1_prototype, \\"constructor\\", { configurable: true, writable: true, value: __f1 });
+Object.defineProperty(__f1_prototype, \\"cMethod\\", { configurable: true, writable: true, value: __f5 });
+Object.defineProperty(__f1_prototype, \\"dVirtual\\", { configurable: true, writable: true, value: __f6 });
+Object.defineProperty(__f1, \\"prototype\\", { value: __f1_prototype });
+Object.setPrototypeOf(__f1, __f2);
+function __f2(__0) {
+  return (function() {
+    return function /*constructor*/(n) {
+                this.n = n;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f3(__0) {
+  return (function() {
+    return function /*dMethod*/(x) {
+                return x;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f4() {
+  return (function() {
+    return function /*dVirtual*/() {
+                return 1;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f1(__0) {
+  return (function() {
+    let __super = __f2;
+
+    return function /*constructor*/(n) {
+    __super.call(this, n + 1);
+};
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f5() {
+  return (function() {
+    let __super = __f2;
+
+    return function /*cMethod*/() {
+    return (\\"\\" +
+        __super.prototype.dMethod +
+        __super.prototype[\\"dMethod\\"] +
+        __super.prototype.dMethod.call(this, 1) +
+        __super.prototype[\\"dMethod\\"].call(this, 2) +
+        __super.prototype.dMethod.call(this, __super.prototype.dMethod.call(this, 3)));
+};
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f6() {
+  return (function() {
+    let __super = __f2;
+
+    return function /*dVirtual*/() {
+    return 3;
+};
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let C = __f1;
+
+    return () => {
+                const c = new C(0);
+                return [c.cMethod(), c.dVirtual()];
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Test computed method name. 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __f1_prototype = {};
+Object.defineProperty(__f1_prototype, \\"constructor\\", { configurable: true, writable: true, value: __f1 });
+Object.defineProperty(__f1_prototype, \\"method name\\", { configurable: true, writable: true, value: __f2 });
+Object.defineProperty(__f1, \\"prototype\\", { value: __f1_prototype });
+function __f1() {
+  return (function() {
+    return function /*constructor*/() { };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f2(__0) {
+  return (function() {
+    return function (a) {
+                return a;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let C = __f1;
+    let methodName = \\"method name\\";
+
+    return () => new C()[methodName](1);
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Test function with property 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+__f0.foo = \\"bar\\";
+function __f0() {
+  return (function() {
+    let v = __f0;
+
+    return () => {
+            return 1 + v.foo;
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Test generator func 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __f_prototype = Object.create(Object.getPrototypeOf((function*(){}).prototype));
+Object.defineProperty(__f, \\"prototype\\", { writable: true, value: __f_prototype });
+Object.setPrototypeOf(__f, Object.getPrototypeOf(function*(){}));
+function __f() {
+  return (function() {
+    let f = __f;
+
+    return function* /*f*/() {
+            yield 1;
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let f = __f;
+
+    return () => {
+                const arr = [];
+                for (const i of f()) {
+                    arr.push(i);
+                }
+                return arr;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Test getter/setter #1 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __f1_prototype = {};
+Object.defineProperty(__f1_prototype, \\"constructor\\", { configurable: true, writable: true, value: __f1 });
+Object.defineProperty(__f1_prototype, \\"foo\\", { configurable: true, get: __f2, set: __f3 });
+Object.defineProperty(__f1, \\"prototype\\", { value: __f1_prototype });
+function __f1() {
+  return (function() {
+    return function /*constructor*/() {
+                this._x = 0;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f2() {
+  return (function() {
+    return function /*foo*/() {
+                return this._x;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f3(__0) {
+  return (function() {
+    return function /*foo*/(v) {
+                this._x = v + 1;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let C = __f1;
+
+    return () => {
+                const c = new C();
+                c.foo = 1;
+                return c.foo;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Test getter/setter #2 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __C = {};
+Object.defineProperty(__C, \\"foo\\", { configurable: true, get: __f1, set: __f2 });
+__C.i = 1;
+function __f1() {
+  return (function() {
+    let C = __C;
+
+    return function /*foo*/() {
+                return C.i;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f2(__0) {
+  return (function() {
+    let C = __C;
+
+    return function /*foo*/(v) {
+                C.i += v;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let C = __C;
+
+    return () => {
+                C.foo = 1;
+                return C.foo;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Test non-default function prototype 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+Object.setPrototypeOf(__f0, __f1);
+function __f0() {
+  return (function() {
+    return () => {
+            return 0;
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f1() {
+  return (function() {
+    return () => {
+            return 1;
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Test non-default object prototype 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __x = Object.create(global.Number.prototype);
+__x.prop = \\"value\\";
+function __f0() {
+  return (function() {
+    let x = __x;
+
+    return () => {
+            return x;
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Test null prototype 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __x = Object.create(null);
+function __f0() {
+  return (function() {
+    let x = __x;
+
+    return () => {
+            return x;
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Test recursive prototype object prototype 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __x_proto = {x: __f1};
+var __x = Object.create(__x_proto);
+function __f1() {
+  return (function() {
+    let v = __f0;
+
+    return function /*x*/() {
+                return v;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let x = __x;
+
+    return () => {
+            return x;
+        };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Test symbols #1 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __f1_prototype = {};
+Object.defineProperty(__f1_prototype, \\"constructor\\", { configurable: true, writable: true, value: __f1 });
+var __sym = Symbol(\\"test_symbol\\");
+Object.defineProperty(__f1_prototype, \\"getSym\\", { configurable: true, writable: true, value: __f2 });
+Object.defineProperty(__f1_prototype, __sym, { configurable: true, writable: true, value: __f3 });
+Object.defineProperty(__f1, \\"prototype\\", { value: __f1_prototype });
+function __f1() {
+  return (function() {
+    return function /*constructor*/() { };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f2() {
+  return (function() {
+    let sym = __sym;
+
+    return function /*getSym*/() {
+                return sym;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f3(__0) {
+  return (function() {
+    return function (a) {
+                return a;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let C = __f1;
+
+    return () => C;
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Three level inheritance 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __f3_prototype = {};
+Object.defineProperty(__f3_prototype, \\"constructor\\", { configurable: true, writable: true, value: __f3 });
+Object.defineProperty(__f3_prototype, \\"method\\", { configurable: true, writable: true, value: __f4 });
+Object.defineProperty(__f3, \\"prototype\\", { value: __f3_prototype });
+var __f2_prototype = Object.create(__f3_prototype);
+Object.defineProperty(__f2_prototype, \\"constructor\\", { configurable: true, writable: true, value: __f2 });
+Object.defineProperty(__f2_prototype, \\"method\\", { configurable: true, writable: true, value: __f5 });
+Object.defineProperty(__f2, \\"prototype\\", { value: __f2_prototype });
+Object.setPrototypeOf(__f2, __f3);
+var __f1_prototype = Object.create(__f2_prototype);
+Object.defineProperty(__f1_prototype, \\"constructor\\", { configurable: true, writable: true, value: __f1 });
+Object.defineProperty(__f1_prototype, \\"method\\", { configurable: true, writable: true, value: __f6 });
+Object.defineProperty(__f1, \\"prototype\\", { value: __f1_prototype });
+Object.setPrototypeOf(__f1, __f2);
+function __f3(__0) {
+  return (function() {
+    return function /*constructor*/(n) {
+                this.n = n;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f4(__0) {
+  return (function() {
+    return function /*method*/(x) {
+                return x;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f2(__0) {
+  return (function() {
+    let __super = __f3;
+
+    return function /*constructor*/(n) {
+    __super.call(this, n + 1);
+};
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f5(__0) {
+  return (function() {
+    let __super = __f3;
+
+    return function /*method*/(n) {
+    return 1 + __super.prototype.method.call(this, n + 1);
+};
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f1(__0) {
+  return (function() {
+    let __super = __f2;
+
+    return function /*constructor*/(n) {
+    __super.call(this, n * 2);
+};
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f6(__0) {
+  return (function() {
+    let __super = __f2;
+
+    return function /*method*/(n) {
+    return 2 * __super.prototype.method.call(this, n * 2);
+};
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let C = __f1;
+
+    return () => new C(1).method(2);
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Three level inheritance with symbols 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+var __f3_prototype = {};
+Object.defineProperty(__f3_prototype, \\"constructor\\", { configurable: true, writable: true, value: __f3 });
+var __f3_prototype_sym = Symbol.for(\\"sym\\");
+Object.defineProperty(__f3_prototype, __f3_prototype_sym, { configurable: true, writable: true, value: __f4 });
+Object.defineProperty(__f3, \\"prototype\\", { value: __f3_prototype });
+var __f2_prototype = Object.create(__f3_prototype);
+Object.defineProperty(__f2_prototype, \\"constructor\\", { configurable: true, writable: true, value: __f2 });
+Object.defineProperty(__f2_prototype, __f3_prototype_sym, { configurable: true, writable: true, value: __f5 });
+Object.defineProperty(__f2, \\"prototype\\", { value: __f2_prototype });
+Object.setPrototypeOf(__f2, __f3);
+var __f1_prototype = Object.create(__f2_prototype);
+Object.defineProperty(__f1_prototype, \\"constructor\\", { configurable: true, writable: true, value: __f1 });
+Object.defineProperty(__f1_prototype, __f3_prototype_sym, { configurable: true, writable: true, value: __f6 });
+Object.defineProperty(__f1, \\"prototype\\", { value: __f1_prototype });
+Object.setPrototypeOf(__f1, __f2);
+function __f3(__0) {
+  return (function() {
+    return function /*constructor*/(n) {
+                this.n = n;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f4(__0) {
+  return (function() {
+    return function (x) {
+                return x;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f2(__0) {
+  return (function() {
+    let __super = __f3;
+
+    return function /*constructor*/(n) {
+    __super.call(this, n + 1);
+};
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f5(__0) {
+  return (function() {
+    let sym = __f3_prototype_sym;
+    let __super = __f3;
+
+    return function /*__computed*/(n) {
+    return 1 + __super.prototype[sym].call(this, n + 1);
+};
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f1(__0) {
+  return (function() {
+    let __super = __f2;
+
+    return function /*constructor*/(n) {
+    __super.call(this, n * 2);
+};
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f6(__0) {
+  return (function() {
+    let sym = __f3_prototype_sym;
+    let __super = __f2;
+
+    return function /*__computed*/(n) {
+    return 2 * __super.prototype[sym].call(this, n * 2);
+};
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let C = __f1;
+    let sym = __f3_prototype_sym;
+
+    return () => new C(1)[sym](1);
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Two level static inheritance 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+
+Object.defineProperty(__f2, \\"method\\", { configurable: true, writable: true, value: __f3 });
+var __f2_sym = Symbol();
+Object.defineProperty(__f2, __f2_sym, { configurable: true, writable: true, value: __f4 });
+Object.defineProperty(__f1, \\"method\\", { configurable: true, writable: true, value: __f5 });
+Object.defineProperty(__f1, __f2_sym, { configurable: true, writable: true, value: __f6 });
+Object.setPrototypeOf(__f1, __f2);
+function __f2(__0) {
+  return (function() {
+    return function /*constructor*/(n) {
+                this.n = n;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f3(__0) {
+  return (function() {
+    return function /*method*/(x) {
+                return x;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f4(__0) {
+  return (function() {
+    return function (x) {
+                return x * x;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f1(__0) {
+  return (function() {
+    let __super = __f2;
+
+    return function /*constructor*/(n) {
+    __super.call(this, n + 1);
+};
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f5(__0) {
+  return (function() {
+    let __super = __f2;
+
+    return function /*method*/(n) {
+    return 1 + __super.method.call(this, n + 1);
+};
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f6(__0) {
+  return (function() {
+    let sym = __f2_sym;
+    let __super = __f2;
+
+    return function /*__computed*/(x) {
+    return x * __super[sym].call(this, x + 1);
+};
+  }).apply(undefined, undefined).apply(this, arguments);
+}function __f0() {
+  return (function() {
+    let B = __f1;
+    let sym = __f2_sym;
+    let A = __f2;
+
+    return () => B.method(1) +
+                B[sym](1) +
+                new B(1).n +
+                A.method(1) +
+                A[sym](1) +
+                new A(1).n;
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Undeclared variable in typeof 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+function __f0() {
+  return (function() {
+    let a = undefined;
+
+    return function () {
+                const x = typeof a;
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure Wrapped lambda function 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __f0;
+function __f0(__0, __1, __2) {
+  return (function() {
+    let os = require(\\"os\\");
+
+    return (a, b, c) => {
+                const v = os;
+                return { v };
+            };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
 }
 `;

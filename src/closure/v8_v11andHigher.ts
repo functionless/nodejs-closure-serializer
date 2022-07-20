@@ -254,14 +254,10 @@ async function runtimeGetPropertiesAsync(
 
   // This cast will become unnecessary when we move to TS 3.1.6 or above.  In that version they
   // support typesafe '.call' calls.
-  const retType = <inspector.Runtime.GetPropertiesReturnType>await post.call(
-    session,
-    "Runtime.getProperties",
-    {
-      objectId,
-      ownProperties,
-    }
-  );
+  const retType = await post.call(session, "Runtime.getProperties", {
+    objectId,
+    ownProperties,
+  });
 
   if (retType.exceptionDetails) {
     throw new Error(
@@ -276,7 +272,7 @@ async function runtimeGetPropertiesAsync(
   };
 }
 
-async function getValueForObjectId(
+export async function getValueForObjectId(
   objectId: inspector.Runtime.RemoteObjectId
 ): Promise<any> {
   // In order to get the raw JS value for the *remote wrapper* of the [[Scopes]] array, we use

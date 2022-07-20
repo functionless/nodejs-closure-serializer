@@ -42,6 +42,8 @@ const project = new typescript.TypeScriptProject({
     "eslint-plugin-header",
     "eslint-plugin-import",
     "mockpackage@file:test/mockpackage",
+    "aws-serverless-express",
+    "express",
   ] /* Build dependencies for this module. */,
   peerDeps: ["typescript"],
   // packageName: undefined,  /* The "name" in package.json. */
