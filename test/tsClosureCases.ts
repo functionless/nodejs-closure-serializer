@@ -26,6 +26,7 @@ import path from "path";
 import fs from "fs";
 
 import * as deploymentOnlyModule from "./deploymentOnlyModule";
+import { SerializeFunctionArgs } from "../src/closure/serializeClosure";
 
 interface ClosureCase {
   pre?: () => void; // an optional function to run before this case.
@@ -37,6 +38,7 @@ interface ClosureCase {
   error?: string; // error message we expect to be thrown if we are unable to serialize closure.
   afters?: ClosureCase[]; // an optional list of test cases to run afterwards.
   transformers?: ts.TransformerFactory<ts.Node>[];
+  shouldCaptureProp?: SerializeFunctionArgs["shouldCaptureProp"];
   inputArguments?: any[];
   expectResult?: any; // optional value - if defined, then the closure will be invoked with this result expected
   expectThrow?: any; // optional value - if defined, then the closure will be invoked with the exception expected
@@ -674,8 +676,8 @@ Function code:
   {
     cases.push({
       title: "Undeclared variable in typeof",
-      // @ts-ignore
       func: function () {
+        // @ts-ignore
         const x = typeof a;
       },
       snapshot: true,
@@ -3177,6 +3179,36 @@ Function code:
     ],
   });
 
+  {
+    function foo() {}
+    foo["bad"] = { data: "hello" };
+    cases.push({
+      title: "exclude properties on function",
+      shouldCaptureProp: (func, prop) => {
+        return prop !== "bad";
+      },
+      snapshot: true,
+      func: foo,
+    });
+  }
+
+  {
+    const free = {
+      bad: "santa",
+    };
+    function foo() {
+      return free;
+    }
+    cases.push({
+      title: "exclude properties on object",
+      shouldCaptureProp: (func, prop) => {
+        return prop !== "bad";
+      },
+      snapshot: true,
+      func: foo,
+    });
+  }
+
   // Run a bunch of direct checks on async js functions if we're in node 8 or above.
   // We can't do this inline as node6 doesn't understand 'async functions'.  And we
   // can't do this in TS as TS will convert the async-function to be a normal non-async
@@ -3280,11 +3312,13 @@ Function code:
     if (test.func) {
       return await serializeFunction(test.func, {
         transformers: test.transformers,
+        shouldCaptureProp: test.shouldCaptureProp,
       });
     } else if (test.factoryFunc) {
       return await serializeFunction(test.factoryFunc!, {
         isFactoryFunction: true,
         transformers: test.transformers,
+        shouldCaptureProp: test.shouldCaptureProp,
       });
     } else {
       throw new Error("Have to supply [func] or [factoryFunc]!");

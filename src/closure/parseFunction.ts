@@ -378,9 +378,8 @@ function createSourceFile(
   args: SerializeFunctionArgs
 ): [string, ts.SourceFile | null] {
   const funcstr =
-    serializedFunction.funcExprWithName ||
+    serializedFunction.funcExprWithName ??
     serializedFunction.funcExprWithoutName;
-
   // Wrap with parens to make into something parseable.  This is necessary as many
   // types of functions are valid function expressions, but not valid function
   // declarations.  i.e.   "function () { }".  This is not a valid function declaration
@@ -426,7 +425,17 @@ function cleanSourceFile(
   const printer = ts.createPrinter({ newLine: ts.NewLineKind.LineFeed });
   return ts.createSourceFile(
     "",
-    printer.printNode(ts.EmitHint.Unspecified, transformed[0], closure).trim(),
+    printer
+      .printNode(
+        ts.EmitHint.Unspecified,
+        ts.isExpressionStatement(transformed[0]) &&
+          ts.isParenthesizedExpression(transformed[0].expression)
+          ? // unwrap the (function foo() { })
+            transformed[0].expression
+          : transformed[0],
+        closure
+      )
+      .trim(),
     ts.ScriptTarget.Latest,
     true,
     ts.ScriptKind.JS

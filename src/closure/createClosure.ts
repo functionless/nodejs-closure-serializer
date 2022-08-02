@@ -481,7 +481,11 @@ async function analyzeFunctionInfoAsync(
     // capture any properties placed on the function itself.  Don't bother with
     // "length/name" as those are not things we can actually change.
     for (const descriptor of await getOwnPropertyDescriptors(func)) {
-      if (descriptor.name === "length" || descriptor.name === "name") {
+      if (
+        descriptor.name === "length" ||
+        descriptor.name === "name" ||
+        !shouldCaptureProp(args, func, descriptor)
+      ) {
         continue;
       }
 
@@ -1129,7 +1133,14 @@ async function getOrCreateEntryAsync(
       // array may be sparse and we want to properly respect that when serializing.
       entry.array = [];
       for (const descriptor of await getOwnPropertyDescriptors(obj)) {
-        if (descriptor.name !== undefined && descriptor.name !== "length") {
+        if (
+          (descriptor.name !== undefined && descriptor.name !== "length") ||
+          !shouldCaptureProp(
+            args ?? (isInvokedOrArgs as SerializeFunctionArgs),
+            obj,
+            descriptor
+          )
+        ) {
           entry.array[<any>descriptor.name] = await getOrCreateEntryAsync(
             await getOwnPropertyAsync(obj, descriptor),
             context,
@@ -1193,6 +1204,15 @@ async function getOrCreateEntryAsync(
     const descriptors = await getOwnPropertyDescriptors(obj);
 
     for (const descriptor of descriptors) {
+      if (
+        !shouldCaptureProp(
+          args ?? (isInvokedOrArgs as SerializeFunctionArgs),
+          obj,
+          descriptor
+        )
+      ) {
+        continue;
+      }
       const keyEntry = await getOrCreateEntryAsync(
         getNameOrSymbol(descriptor),
         context,
@@ -1283,6 +1303,15 @@ async function getOrCreateEntryAsync(
     // example, if we say "foo.bar.baz", "foo.bar.quux", "foo.ztesch", this would "bar" and
     // "ztesch".
     for (const propName of propChainFirstNames) {
+      if (
+        !shouldCaptureProp(
+          args ?? (isInvokedOrArgs as SerializeFunctionArgs),
+          obj,
+          propName
+        )
+      ) {
+        continue;
+      }
       // Get the named chains starting with this prop name.  In the above example, if
       // this was "bar", then we would get "[bar, baz]" and [bar, quux].
       const propChains = localCapturedPropertyChains.filter(
@@ -1678,4 +1707,23 @@ function getNameOrSymbol(
   }
 
   return descriptor.symbol || descriptor.name!!;
+}
+
+/**
+ * Returns `true` if the {@link property} on {@link obj} should not be captured.
+ */
+function shouldCaptureProp(
+  args: SerializeFunctionArgs,
+  obj: any,
+  property: ClosurePropertyDescriptor | string | symbol
+): boolean {
+  if (args?.shouldCaptureProp === undefined) {
+    return true;
+  }
+  const name =
+    typeof property === "object" ? property.symbol ?? property.name : property;
+  if (name !== undefined) {
+    return args.shouldCaptureProp(obj, name);
+  }
+  return false;
 }
