@@ -4708,6 +4708,7 @@ function __f0() {
     let a = undefined;
 
     return function () {
+                // @ts-ignore
                 const x = typeof a;
             };
   }).apply(undefined, undefined).apply(this, arguments);
@@ -4727,6 +4728,39 @@ function __f0(__0, __1, __2) {
                 const v = os;
                 return { v };
             };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure exclude properties on function 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __foo;
+function __foo() {
+  return (function() {
+    let foo = __foo;
+
+    return function /*foo*/() { };
+  }).apply(undefined, undefined).apply(this, arguments);
+}",
+}
+`;
+
+exports[`after hooks closure exclude properties on object 1`] = `
+Object {
+  "exportName": "handler",
+  "text": "exports.handler = __foo;
+
+var __free = {};
+function __foo() {
+  return (function() {
+    let free = __free;
+    let foo = __foo;
+
+    return function /*foo*/() {
+            return free;
+        };
   }).apply(undefined, undefined).apply(this, arguments);
 }",
 }

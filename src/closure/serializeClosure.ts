@@ -30,6 +30,13 @@ export interface SerializeFunctionArgs {
    */
   serialize: (o: any) => boolean | any;
   /**
+   * A function to prevent serialization of a {@link property} on an {@link obj}
+   *
+   * @param obj the object containing the property
+   * @param property the value of the property name
+   */
+  shouldCaptureProp?: (obj: any, property: string | number | symbol) => boolean;
+  /**
    * List of transformers to apply to closures.
    */
   transformers?: ts.TransformerFactory<ts.Node>[];
