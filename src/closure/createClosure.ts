@@ -259,7 +259,11 @@ export async function createClosureInfoAsync(
       for (const key of Object.getOwnPropertyNames(current)) {
         // "GLOBAL" and "root" are deprecated and give warnings if you try to access them.  So
         // just skip them.
-        if (key !== "GLOBAL" && key !== "root") {
+        if (
+          key !== "GLOBAL" &&
+          key !== "root" &&
+          key !== "$jsDebugIsRegistered"
+        ) {
           await addGlobalInfoAsync(key);
         }
       }
