@@ -597,7 +597,12 @@ function computeCapturedVariableNames(
     // If we think these are built-in, we won't serialize them, and the functions may not
     // actually be available if the import that caused it to get attached isn't included in the
     // final serialized code.
-    if (ident === "__awaiter" || ident === "__rest") {
+    if (
+      ident === "__awaiter" ||
+      ident === "__rest" ||
+      ident === "__generator" ||
+      ident === "__assign"
+    ) {
       return false;
     }
 
