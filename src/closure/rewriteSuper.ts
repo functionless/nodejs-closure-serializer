@@ -87,12 +87,16 @@ export function rewriteSuperReferences(
         node.expression.kind === ts.SyntaxKind.SuperKeyword
       ) {
         const expr = isStatic
-          ? ts.createIdentifier("__super")
-          : ts.createPropertyAccess(
-              ts.createIdentifier("__super"),
+          ? ts.factory.createIdentifier("__super")
+          : ts.factory.createPropertyAccessExpression(
+              ts.factory.createIdentifier("__super"),
               "prototype"
             );
-        const newNode = ts.updatePropertyAccess(node, expr, node.name);
+        const newNode = ts.factory.updatePropertyAccessExpression(
+          node,
+          expr,
+          node.name
+        );
         newNodes.add(newNode);
         return newNode;
       } else if (
@@ -101,13 +105,13 @@ export function rewriteSuperReferences(
         node.expression.kind === ts.SyntaxKind.SuperKeyword
       ) {
         const expr = isStatic
-          ? ts.createIdentifier("__super")
-          : ts.createPropertyAccess(
-              ts.createIdentifier("__super"),
+          ? ts.factory.createIdentifier("__super")
+          : ts.factory.createPropertyAccessExpression(
+              ts.factory.createIdentifier("__super"),
               "prototype"
             );
 
-        const newNode = ts.updateElementAccess(
+        const newNode = ts.factory.updateElementAccessExpression(
           node,
           expr,
           node.argumentExpression
@@ -131,11 +135,14 @@ export function rewriteSuperReferences(
         // to that, we have to add the .call(this, ...) call.
 
         const argumentsCopy = rewritten.arguments.slice();
-        argumentsCopy.unshift(ts.createThis());
+        argumentsCopy.unshift(ts.factory.createThis());
 
-        return ts.updateCall(
+        return ts.factory.updateCallExpression(
           rewritten,
-          ts.createPropertyAccess(rewritten.expression, "call"),
+          ts.factory.createPropertyAccessExpression(
+            rewritten.expression,
+            "call"
+          ),
           rewritten.typeArguments,
           argumentsCopy
         );
