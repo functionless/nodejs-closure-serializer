@@ -66,12 +66,11 @@ export function rewriteSuperReferences(
         const text = utils.isLegalMemberName(funcDecl.name!.text)
           ? "/*" + funcDecl.name!.text + "*/"
           : "";
-        return ts.updateFunctionDeclaration(
+        return ts.factory.updateFunctionDeclaration(
           funcDecl,
-          funcDecl.decorators,
           funcDecl.modifiers,
           funcDecl.asteriskToken,
-          ts.createIdentifier(text),
+          ts.factory.createIdentifier(text),
           funcDecl.typeParameters,
           funcDecl.parameters,
           funcDecl.type,
@@ -80,7 +79,7 @@ export function rewriteSuperReferences(
       }
 
       if (node.kind === ts.SyntaxKind.SuperKeyword) {
-        const newNode = ts.createIdentifier("__super");
+        const newNode = ts.factory.createIdentifier("__super");
         newNodes.add(newNode);
         return newNode;
       } else if (
